@@ -6,9 +6,13 @@
     "npm": "9.x"
   },
   "scripts": {
-    "heroku-postbuild": "cd frontend && npm install && npm run build && cd ../frontend_admin && npm install && npm run build",
+    "heroku-postbuild": "cd frontend && npm install --production=false && npm run build && cd ../frontend_admin && npm install --production=false && npm run build",
     "start": "echo 'This is handled by Procfile'"
   },
   "dependencies": {},
-  "devDependencies": {}
+  "devDependencies": {},
+  "cacheDirectories": [
+    "frontend/node_modules",
+    "frontend_admin/node_modules"
+  ]
 }
