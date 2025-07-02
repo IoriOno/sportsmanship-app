@@ -1,0 +1,953 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>テスト結果 - {{ target_name }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+    <style>
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --success-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            --warning-gradient: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+            --danger-gradient: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+            --info-gradient: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+            --dark-gradient: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            --shadow-soft: 0 10px 30px rgba(0,0,0,0.1);
+            --shadow-medium: 0 15px 35px rgba(0,0,0,0.15);
+            --shadow-strong: 0 20px 40px rgba(0,0,0,0.2);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Noto Sans JP', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #2c3e50;
+        }
+
+        .results-container {
+            min-height: 100vh;
+            padding: 2rem 0;
+        }
+
+        .results-header {
+            text-align: center;
+            margin-bottom: 3rem;
+            color: white;
+            animation: fadeInDown 0.8s ease-out;
+        }
+
+        .results-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        }
+
+        .results-subtitle {
+            font-size: 1.2rem;
+            opacity: 0.9;
+            margin-bottom: 0.5rem;
+        }
+
+        .completion-badge {
+            background: rgba(255,255,255,0.2);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 0.8rem 1.5rem;
+            display: inline-block;
+            margin-top: 1rem;
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+
+        .main-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 2rem;
+        }
+
+        .athlete-type-section {
+            background: white;
+            border-radius: 25px;
+            padding: 3rem;
+            margin-bottom: 3rem;
+            box-shadow: var(--shadow-strong);
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+            animation: slideInUp 0.8s ease-out;
+        }
+
+        .athlete-type-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 6px;
+            background: var(--primary-gradient);
+        }
+
+        .athlete-icon {
+            width: 120px;
+            height: 120px;
+            margin: 0 auto 2rem;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            color: white;
+            background: var(--primary-gradient);
+            box-shadow: var(--shadow-medium);
+            animation: pulse 2s infinite;
+        }
+
+        .athlete-type-name {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .athlete-type-description {
+            font-size: 1.2rem;
+            color: #7f8c8d;
+            line-height: 1.6;
+            max-width: 800px;
+            margin: 0 auto 2rem;
+        }
+
+        .type-characteristics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+
+        .characteristic-item {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 1.5rem;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .characteristic-item:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow-medium);
+        }
+
+        .characteristic-icon {
+            width: 50px;
+            height: 50px;
+            margin: 0 auto 1rem;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--primary-gradient);
+            color: white;
+            font-size: 1.2rem;
+        }
+
+        .characteristic-title {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .characteristic-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #667eea;
+        }
+
+        .scores-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 2rem;
+            margin-bottom: 3rem;
+        }
+
+        .score-section {
+            background: white;
+            border-radius: 20px;
+            padding: 2rem;
+            box-shadow: var(--shadow-medium);
+            animation: slideInUp 1s ease-out;
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid #ecf0f1;
+        }
+
+        .section-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            margin-right: 1rem;
+            font-size: 1.2rem;
+        }
+
+        .section-icon.sportsmanship { background: var(--danger-gradient); }
+        .section-icon.athlete-mind { background: var(--success-gradient); }
+        .section-icon.self-affirmation { background: var(--warning-gradient); }
+
+        .section-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+        }
+
+        .section-subtitle {
+            font-size: 0.9rem;
+            color: #7f8c8d;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin-bottom: 1rem;
+        }
+
+        .score-summary {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid #ecf0f1;
+        }
+
+        .summary-item {
+            text-align: center;
+        }
+
+        .summary-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #2c3e50;
+        }
+
+        .summary-label {
+            font-size: 0.8rem;
+            color: #7f8c8d;
+        }
+
+        .export-section {
+            background: rgba(255,255,255,0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 2rem;
+            margin-bottom: 3rem;
+            border: 1px solid rgba(255,255,255,0.3);
+            animation: slideInUp 1.2s ease-out;
+        }
+
+        .export-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .export-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .export-description {
+            color: #7f8c8d;
+            font-size: 0.9rem;
+        }
+
+        .export-buttons {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+        }
+
+        .export-btn {
+            background: white;
+            border: 2px solid #ecf0f1;
+            border-radius: 15px;
+            padding: 1rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            color: #2c3e50;
+        }
+
+        .export-btn:hover {
+            border-color: #667eea;
+            transform: translateY(-3px);
+            box-shadow: var(--shadow-medium);
+            color: #667eea;
+        }
+
+        .export-icon {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+            display: block;
+        }
+
+        .export-label {
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        .actions-section {
+            text-align: center;
+            margin-top: 3rem;
+        }
+
+        .action-btn {
+            background: var(--primary-gradient);
+            color: white;
+            border: none;
+            padding: 1rem 2.5rem;
+            font-size: 1.1rem;
+            font-weight: 600;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: var(--shadow-medium);
+            margin: 0 0.5rem;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .action-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: var(--shadow-strong);
+            color: white;
+        }
+
+        .action-btn.secondary {
+            background: white;
+            color: #667eea;
+            border: 2px solid #667eea;
+        }
+
+        .action-btn.secondary:hover {
+            background: #667eea;
+            color: white;
+        }
+
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes slideInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.05);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .results-title {
+                font-size: 2rem;
+            }
+
+            .athlete-type-section {
+                padding: 2rem 1.5rem;
+            }
+
+            .athlete-type-name {
+                font-size: 2rem;
+            }
+
+            .scores-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .type-characteristics {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .export-buttons {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .action-btn {
+                display: block;
+                width: 100%;
+                margin-bottom: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="results-container">
+        <!-- Header -->
+        <div class="results-header">
+            <h1 class="results-title">
+                <i class="fas fa-trophy me-3"></i>
+                テスト結果
+            </h1>
+            <p class="results-subtitle">{{ target_name }}としての総合分析結果</p>
+            <div class="completion-badge">
+                <i class="fas fa-check-circle me-2"></i>
+                379問 完了
+            </div>
+        </div>
+
+        <div class="main-content">
+            <!-- Athlete Type Section -->
+            <div class="athlete-type-section">
+                <div class="athlete-icon">
+                    <i class="fas fa-medal"></i>
+                </div>
+                <h2 class="athlete-type-name" id="athleteTypeName">
+                    分析中...
+                </h2>
+                <p class="athlete-type-description" id="athleteTypeDescription">
+                    アスリートタイプを分析しています...
+                </p>
+                <div class="type-characteristics" id="typeCharacteristics">
+                    <!-- Dynamic content -->
+                </div>
+            </div>
+
+            <!-- Scores Grid -->
+            <div class="scores-grid">
+                <!-- Sportsmanship Scores -->
+                <div class="score-section">
+                    <div class="section-header">
+                        <div class="section-icon sportsmanship">
+                            <i class="fas fa-handshake"></i>
+                        </div>
+                        <div>
+                            <div class="section-title">スポーツマンシップ</div>
+                            <div class="section-subtitle">5つの資質評価</div>
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="sportsmanshipChart"></canvas>
+                    </div>
+                    <div class="score-summary">
+                        <div class="summary-item">
+                            <div class="summary-value" id="sportsmanshipTotal">-</div>
+                            <div class="summary-label">総合スコア</div>
+                        </div>
+                        <div class="summary-item">
+                            <div class="summary-value" id="sportsmanshipAvg">-</div>
+                            <div class="summary-label">平均値</div>
+                        </div>
+                        <div class="summary-item">
+                            <div class="summary-value" id="sportsmanshipGrade">-</div>
+                            <div class="summary-label">評価</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Athlete Mind Scores -->
+                <div class="score-section">
+                    <div class="section-header">
+                        <div class="section-icon athlete-mind">
+                            <i class="fas fa-dumbbell"></i>
+                        </div>
+                        <div>
+                            <div class="section-title">アスリートマインド</div>
+                            <div class="section-subtitle">10の資質評価</div>
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="athleteMindChart"></canvas>
+                    </div>
+                    <div class="score-summary">
+                        <div class="summary-item">
+                            <div class="summary-value" id="athleteMindTotal">-</div>
+                            <div class="summary-label">総合スコア</div>
+                        </div>
+                        <div class="summary-item">
+                            <div class="summary-value" id="athleteMindAvg">-</div>
+                            <div class="summary-label">平均値</div>
+                        </div>
+                        <div class="summary-item">
+                            <div class="summary-value" id="athleteMindGrade">-</div>
+                            <div class="summary-label">評価</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Self Affirmation Scores -->
+                <div class="score-section">
+                    <div class="section-header">
+                        <div class="section-icon self-affirmation">
+                            <i class="fas fa-heart"></i>
+                        </div>
+                        <div>
+                            <div class="section-title">自己肯定感</div>
+                            <div class="section-subtitle">4つの要素評価</div>
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="selfAffirmationChart"></canvas>
+                    </div>
+                    <div class="score-summary">
+                        <div class="summary-item">
+                            <div class="summary-value" id="selfAffirmationTotal">-</div>
+                            <div class="summary-label">総合スコア</div>
+                        </div>
+                        <div class="summary-item">
+                            <div class="summary-value" id="selfAffirmationAvg">-</div>
+                            <div class="summary-label">平均値</div>
+                        </div>
+                        <div class="summary-item">
+                            <div class="summary-value" id="selfAffirmationGrade">-</div>
+                            <div class="summary-label">評価</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Export Section -->
+            <div class="export-section">
+                <div class="export-header">
+                    <h3 class="export-title">
+                        <i class="fas fa-download me-2"></i>
+                        結果をエクスポート
+                    </h3>
+                    <p class="export-description">
+                        あなたの分析結果を様々な形式でダウンロードできます
+                    </p>
+                </div>
+                <div class="export-buttons">
+                    <a href="#" class="export-btn" onclick="exportToPDF()">
+                        <i class="fas fa-file-pdf export-icon"></i>
+                        <div class="export-label">PDF レポート</div>
+                    </a>
+                    <a href="#" class="export-btn" onclick="exportToExcel()">
+                        <i class="fas fa-file-excel export-icon"></i>
+                        <div class="export-label">Excel データ</div>
+                    </a>
+                    <a href="#" class="export-btn" onclick="exportToCSV()">
+                        <i class="fas fa-file-csv export-icon"></i>
+                        <div class="export-label">CSV データ</div>
+                    </a>
+                    <a href="#" class="export-btn" onclick="exportToJSON()">
+                        <i class="fas fa-file-code export-icon"></i>
+                        <div class="export-label">JSON データ</div>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Actions Section -->
+            <div class="actions-section">
+                <a href="/" class="action-btn">
+                    <i class="fas fa-redo me-2"></i>
+                    新しいテストを開始
+                </a>
+                <a href="#" class="action-btn secondary" onclick="shareResults()">
+                    <i class="fas fa-share me-2"></i>
+                    結果を共有
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Results data (will be populated from backend)
+        const resultData = {
+            result_id: '{{ result.result_id }}',
+            target_selection: '{{ result.target_selection }}',
+            target_name: '{{ target_name }}',
+            scores: {
+                // Sportsmanship
+                courage: {{ result.courage or 0 }},
+                resilience: {{ result.resilience or 0 }},
+                cooperation: {{ result.cooperation or 0 }},
+                natural_acceptance: {{ result.natural_acceptance or 0 }},
+                non_rationality: {{ result.non_rationality or 0 }},
+                
+                // Athlete Mind
+                introspection: {{ result.introspection or 0 }},
+                self_control: {{ result.self_control or 0 }},
+                dedication: {{ result.dedication or 0 }},
+                intuition: {{ result.intuition or 0 }},
+                sensitivity: {{ result.sensitivity or 0 }},
+                steadiness: {{ result.steadiness or 0 }},
+                comparison: {{ result.comparison or 0 }},
+                result_focus: {{ result.result_focus or 0 }},
+                assertion: {{ result.assertion or 0 }},
+                thoroughness: {{ result.thoroughness or 0 }},
+                
+                // Self Affirmation
+                self_determination: {{ result.self_determination or 0 }},
+                self_acceptance: {{ result.self_acceptance or 0 }},
+                self_worth: {{ result.self_worth or 0 }},
+                self_efficacy: {{ result.self_efficacy or 0 }}
+            }
+        };
+
+        // Initialize results display
+        async function initializeResults() {
+            // Fetch athlete type information
+            await fetchAthleteType();
+            
+            // Create charts
+            createSportsmanshipChart();
+            createAthleteMindChart();
+            createSelfAffirmationChart();
+            
+            // Update summaries
+            updateScoreSummaries();
+        }
+
+        // Fetch athlete type
+        async function fetchAthleteType() {
+            try {
+                // Calculate athlete mind scores for analysis
+                const athleteMindScores = {
+                    detail_oriented: resultData.scores.thoroughness,
+                    results_oriented: resultData.scores.result_focus,
+                    steady: resultData.scores.steadiness,
+                    devoted: resultData.scores.dedication,
+                    self_control: resultData.scores.self_control,
+                    assertive: resultData.scores.assertion,
+                    sensitive: resultData.scores.sensitivity,
+                    intuitive: resultData.scores.intuition,
+                    introspective: resultData.scores.introspection,
+                    comparative: resultData.scores.comparison
+                };
+
+                const response = await fetch('/api/v1/athlete-type/analyze', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        scores: athleteMindScores,
+                        target: resultData.target_selection
+                    })
+                });
+
+                const athleteType = await response.json();
+                displayAthleteType(athleteType);
+                
+            } catch (error) {
+                console.error('Failed to fetch athlete type:', error);
+                displayDefaultAthleteType();
+            }
+        }
+
+        // Display athlete type
+        function displayAthleteType(athleteType) {
+            document.getElementById('athleteTypeName').textContent = athleteType.type_name || 'バランス型';
+            document.getElementById('athleteTypeDescription').textContent = athleteType.description || '総合的にバランスの取れたアスリートタイプです。';
+            
+            // Display characteristics
+            const characteristicsContainer = document.getElementById('typeCharacteristics');
+            characteristicsContainer.innerHTML = '';
+            
+            if (athleteType.characteristics) {
+                athleteType.characteristics.forEach(char => {
+                    const item = document.createElement('div');
+                    item.className = 'characteristic-item';
+                    item.innerHTML = `
+                        <div class="characteristic-icon">
+                            <i class="fas fa-star"></i>
+                        </div>
+                        <div class="characteristic-title">${char.name}</div>
+                        <div class="characteristic-value">${char.score}%</div>
+                    `;
+                    characteristicsContainer.appendChild(item);
+                });
+            }
+        }
+
+        // Display default athlete type
+        function displayDefaultAthleteType() {
+            document.getElementById('athleteTypeName').textContent = 'バランス型アスリート';
+            document.getElementById('athleteTypeDescription').textContent = '様々な分野で均等な能力を発揮する、バランスの取れたアスリートタイプです。';
+        }
+
+        // Create sportsmanship chart
+        function createSportsmanshipChart() {
+            const ctx = document.getElementById('sportsmanshipChart').getContext('2d');
+            const data = {
+                labels: ['勇気', '精神的強さ', '協調性', '自然受容', '非合理性'],
+                datasets: [{
+                    label: 'スコア',
+                    data: [
+                        resultData.scores.courage,
+                        resultData.scores.resilience,
+                        resultData.scores.cooperation,
+                        resultData.scores.natural_acceptance,
+                        resultData.scores.non_rationality
+                    ],
+                    backgroundColor: 'rgba(255, 107, 107, 0.2)',
+                    borderColor: 'rgba(255, 107, 107, 1)',
+                    borderWidth: 2,
+                    pointBackgroundColor: 'rgba(255, 107, 107, 1)',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2,
+                    pointRadius: 6
+                }]
+            };
+
+            new Chart(ctx, {
+                type: 'radar',
+                data: data,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        r: {
+                            beginAtZero: true,
+                            max: 50
+                        }
+                    }
+                }
+            });
+        }
+
+        // Create athlete mind chart
+        function createAthleteMindChart() {
+            const ctx = document.getElementById('athleteMindChart').getContext('2d');
+            const data = {
+                labels: [
+                    '内省性', '自制心', '献身性', '直感性', '敏感性',
+                    '安定性', '比較性', '結果志向', '主張性', '細密性'
+                ],
+                datasets: [{
+                    label: 'スコア',
+                    data: [
+                        resultData.scores.introspection,
+                        resultData.scores.self_control,
+                        resultData.scores.dedication,
+                        resultData.scores.intuition,
+                        resultData.scores.sensitivity,
+                        resultData.scores.steadiness,
+                        resultData.scores.comparison,
+                        resultData.scores.result_focus,
+                        resultData.scores.assertion,
+                        resultData.scores.thoroughness
+                    ],
+                    backgroundColor: 'rgba(79, 172, 254, 0.2)',
+                    borderColor: 'rgba(79, 172, 254, 1)',
+                    borderWidth: 2,
+                    pointBackgroundColor: 'rgba(79, 172, 254, 1)',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2,
+                    pointRadius: 5
+                }]
+            };
+
+            new Chart(ctx, {
+                type: 'radar',
+                data: data,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        r: {
+                            beginAtZero: true,
+                            max: 250
+                        }
+                    }
+                }
+            });
+        }
+
+        // Create self affirmation chart
+        function createSelfAffirmationChart() {
+            const ctx = document.getElementById('selfAffirmationChart').getContext('2d');
+            const data = {
+                labels: ['自己決定感', '自己受容感', '自己価値感', '自己効力感'],
+                datasets: [{
+                    label: 'スコア',
+                    data: [
+                        resultData.scores.self_determination,
+                        resultData.scores.self_acceptance,
+                        resultData.scores.self_worth,
+                        resultData.scores.self_efficacy
+                    ],
+                    backgroundColor: [
+                        'rgba(250, 112, 154, 0.8)',
+                        'rgba(254, 225, 64, 0.8)',
+                        'rgba(168, 237, 234, 0.8)',
+                        'rgba(163, 230, 53, 0.8)'
+                    ],
+                    borderColor: [
+                        'rgba(250, 112, 154, 1)',
+                        'rgba(254, 225, 64, 1)',
+                        'rgba(168, 237, 234, 1)',
+                        'rgba(163, 230, 53, 1)'
+                    ],
+                    borderWidth: 2
+                }]
+            };
+
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: data,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+        }
+
+        // Update score summaries
+        function updateScoreSummaries() {
+            // Sportsmanship
+            const sportsmanshipScores = [
+                resultData.scores.courage,
+                resultData.scores.resilience,
+                resultData.scores.cooperation,
+                resultData.scores.natural_acceptance,
+                resultData.scores.non_rationality
+            ];
+            const sportsmanshipTotal = sportsmanshipScores.reduce((a, b) => a + b, 0);
+            const sportsmanshipAvg = (sportsmanshipTotal / sportsmanshipScores.length).toFixed(1);
+            
+            document.getElementById('sportsmanshipTotal').textContent = sportsmanshipTotal;
+            document.getElementById('sportsmanshipAvg').textContent = sportsmanshipAvg;
+            document.getElementById('sportsmanshipGrade').textContent = getGrade(parseFloat(sportsmanshipAvg), 10);
+
+            // Athlete Mind
+            const athleteMindScores = [
+                resultData.scores.introspection, resultData.scores.self_control,
+                resultData.scores.dedication, resultData.scores.intuition,
+                resultData.scores.sensitivity, resultData.scores.steadiness,
+                resultData.scores.comparison, resultData.scores.result_focus,
+                resultData.scores.assertion, resultData.scores.thoroughness
+            ];
+            const athleteMindTotal = athleteMindScores.reduce((a, b) => a + b, 0);
+            const athleteMindAvg = (athleteMindTotal / athleteMindScores.length).toFixed(1);
+            
+            document.getElementById('athleteMindTotal').textContent = athleteMindTotal;
+            document.getElementById('athleteMindAvg').textContent = athleteMindAvg;
+            document.getElementById('athleteMindGrade').textContent = getGrade(parseFloat(athleteMindAvg), 50);
+
+            // Self Affirmation
+            const selfAffirmationScores = [
+                resultData.scores.self_determination,
+                resultData.scores.self_acceptance,
+                resultData.scores.self_worth,
+                resultData.scores.self_efficacy
+            ];
+            const selfAffirmationTotal = selfAffirmationScores.reduce((a, b) => a + b, 0);
+            const selfAffirmationAvg = (selfAffirmationTotal / selfAffirmationScores.length).toFixed(1);
+            
+            document.getElementById('selfAffirmationTotal').textContent = selfAffirmationTotal;
+            document.getElementById('selfAffirmationAvg').textContent = selfAffirmationAvg;
+            document.getElementById('selfAffirmationGrade').textContent = getGrade(parseFloat(selfAffirmationAvg), 50);
+        }
+
+        // Get grade based on average score
+        function getGrade(avg, maxScore) {
+            const percentage = (avg / maxScore) * 100;
+            if (percentage >= 80) return 'A';
+            if (percentage >= 70) return 'B';
+            if (percentage >= 60) return 'C';
+            if (percentage >= 50) return 'D';
+            return 'E';
+        }
+
+        // Export functions
+        async function exportToPDF() {
+            try {
+                window.open(`/api/v1/export/pdf/${resultData.result_id}`, '_blank');
+            } catch (error) {
+                console.error('PDF export failed:', error);
+                alert('PDFエクスポートに失敗しました');
+            }
+        }
+
+        async function exportToExcel() {
+            try {
+                window.open(`/api/v1/export/excel/${resultData.result_id}`, '_blank');
+            } catch (error) {
+                console.error('Excel export failed:', error);
+                alert('Excelエクスポートに失敗しました');
+            }
+        }
+
+        async function exportToCSV() {
+            try {
+                window.open(`/api/v1/export/csv/${resultData.result_id}`, '_blank');
+            } catch (error) {
+                console.error('CSV export failed:', error);
+                alert('CSVエクスポートに失敗しました');
+            }
+        }
+
+        async function exportToJSON() {
+            try {
+                window.open(`/api/v1/export/json/${resultData.result_id}`, '_blank');
+            } catch (error) {
+                console.error('JSON export failed:', error);
+                alert('JSONエクスポートに失敗しました');
+            }
+        }
+
+        // Share results
+        function shareResults() {
+            if (navigator.share) {
+                navigator.share({
+                    title: 'スポーツマンシップメンタルテスト結果',
+                    text: `${resultData.target_name}として379問のテストを完了しました！`,
+                    url: window.location.href
+                });
+            } else {
+                // Fallback to clipboard
+                navigator.clipboard.writeText(window.location.href).then(() => {
+                    alert('結果のURLをクリップボードにコピーしました');
+                });
+            }
+        }
+
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', initializeResults);
+    </script>
+</body>
+</html>

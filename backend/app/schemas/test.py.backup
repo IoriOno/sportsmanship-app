@@ -1,0 +1,90 @@
+from typing import Optional, List, Dict
+from datetime import datetime
+from pydantic import BaseModel, UUID4, validator
+
+
+class TestAnswerCreate(BaseModel):
+    question_id: UUID4  # intからUUID4に変更
+    answer_value: int
+    
+    @validator('answer_value')
+    def validate_answer_value(cls, v):
+        if v < 0 or v > 10:
+            raise ValueError('Answer value must be between 0 and 10')
+        return v
+
+
+class TestSubmit(BaseModel):
+    answers: List[TestAnswerCreate]
+    
+    @validator('answers')
+    def validate_answers_count(cls, v):
+        if len(v) != 99:
+            raise ValueError('Must submit exactly 99 answers')
+        return v
+
+
+class TestResultBase(BaseModel):
+    target_selection: str  # ユーザーの対象選択
+    
+    # 自己肯定感関連
+    self_determination: int
+    self_acceptance: int
+    self_worth: int
+    self_efficacy: int
+    
+    # アスリートマインド
+    introspection: int
+    self_control: int
+    dedication: int
+    intuition: int
+    sensitivity: int
+    steadiness: int
+    comparison: int
+    result_focus: int
+    assertion: int
+    thoroughness: int
+    
+    # スポーツマンシップ
+    courage: int
+    resilience: int
+    cooperation: int
+    natural_acceptance: int
+    non_rationality: int
+
+
+class TestResultCreate(TestResultBase):
+    user_id: UUID4
+
+
+class TestResult(TestResultBase):
+    result_id: UUID4
+    user_id: UUID4
+    test_date: datetime
+    
+    class Config:
+        from_attributes = True
+
+
+class TestResultWithAnalysis(TestResult):
+    # 自己肯定感分析
+    self_esteem_total: int
+    self_esteem_analysis: str
+    self_esteem_improvements: List[str]
+    
+    # アスリートタイプ
+    athlete_type: str
+    athlete_type_description: str
+    athlete_type_percentages: Dict[str, float]
+    
+    # 資質分析
+    strengths: List[str]
+    weaknesses: List[str]
+    
+    # スポーツマンシップ分析
+    sportsmanship_balance: str
+
+
+class TestHistory(BaseModel):
+    results: List[TestResult]
+    total_count: int

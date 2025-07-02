@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Clear Cache</title>
+</head>
+<body>
+    <h1>Clearing cache...</h1>
+    <script>
+        // Service Workerを削除
+        navigator.serviceWorker.getRegistrations().then(function(registrations) {
+            for(let registration of registrations) {
+                registration.unregister();
+            }
+        });
+        // キャッシュをクリア
+        caches.keys().then(function(names) {
+            for (let name of names) caches.delete(name);
+        });
+        alert('Cache cleared! Please close this tab and reload the app.');
+    </script>
+</body>
+</html>

@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>メンタルテスト - {{ target_name }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .test-container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            min-height: 80vh;
+        }
+        .progress-section {
+            background: #f8f9fa;
+            border-radius: 15px 15px 0 0;
+            padding: 1.5rem;
+            border-bottom: 2px solid #e9ecef;
+        }
+        .question-section {
+            padding: 2rem;
+        }
+        .question-card {
+            background: white;
+            border-radius: 10px;
+            padding: 2rem;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            border-left: 5px solid #667eea;
+        }
+        .question-number {
+            color: #667eea;
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
+        .question-text {
+            font-size: 1.2rem;
+            color: #2c3e50;
+            margin: 1rem 0;
+            line-height: 1.6;
+        }
+        .rating-scale {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 2rem 0;
+            padding: 1rem;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+        .rating-option {
+            flex: 1;
+            text-align: center;
+            cursor: pointer;
+            padding: 0.75rem 0.5rem;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+            margin: 0 0.25rem;
+        }
+        .rating-option:hover {
+            background: rgba(102, 126, 234, 0.1);
+            border-color: #667eea;
+        }
+        .rating-option.selected {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+        .rating-number {
+            font-size: 1.2rem;
+            font-weight: bold;
+            display: block;
+        }
+        .rating-label {
+            font-size: 0.85rem;
+            margin-top: 0.25rem;
+        }
+        .scale-gradient {
+            height: 8px;
+            background: linear-gradient(to right, #e74c3c, #f39c12, #27ae60);
+            border-radius: 4px;
+            margin: 1rem 0;
+        }
+        .navigation-buttons {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 2rem;
+        }
+        .btn-custom {
+            padding: 0.75rem 2rem;
+            border-radius: 25px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+        .btn-primary-custom {
+            background: #667eea;
+            border: none;
+            color: white;
+        }
+        .btn-primary-custom:hover {
+            background: #5a6fd8;
+            transform: translateY(-2px);
+        }
+        .btn-secondary-custom {
+            background: #6c757d;
+            border: none;
+            color: white;
+        }
+        .category-indicator {
+            background: #667eea;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 15px;
+            font-size: 0.9rem;
+            display: inline-block;
+            margin-bottom: 1rem;
+        }
+        .progress-text {
+            font-size: 1.1rem;
+            color: #495057;
+        }
+    </style>
+</head>
+<body>
+    <div class="container py-4">
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <div class="test-container">
+                    <!-- Progress Section -->
+                    <div class="progress-section">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h4 class="mb-0">
+                                <i class="fas fa-user me-2"></i>{{ target_name }}
+                            </h4>
+                            <div class="progress-text">
+                                <span id="current-question">1</span> / <span id="total-questions">59</span>
+                            </div>
+                        </div>
+                        <div class="progress" style="height: 10px;">
+                            <div class="progress-bar bg-success" role="progressbar" 
+                                 style="width: 1.43%" id="progress-bar"></div>
+                        </div>
+                    </div>
+
+                    <!-- Question Section -->
+                    <div class="question-section">
+                        <div class="question-card">
+                            <div class="category-indicator" id="category-indicator">
+                                スポーツマンシップ
+                            </div>
+                            <div class="question-number" id="question-number">
+                                質問 1
+                            </div>
+                            <div class="question-text" id="question-text">
+                                質問を読み込み中...
+                            </div>
+                            
+                            <!-- 3色グラデーション表示 -->
+                            <div class="scale-gradient"></div>
+                            
+                            <!-- 11段階評価スケール -->
+                            <div class="rating-scale" id="rating-scale">
+                                <!-- JavaScriptで動的生成 -->
+                            </div>
+                            
+                            <div class="navigation-buttons">
+                                <button class="btn btn-secondary-custom btn-custom" 
+                                        id="prev-btn" onclick="previousQuestion()" disabled>
+                                    <i class="fas fa-chevron-left me-2"></i>前の質問
+                                </button>
+                                
+                                <button class="btn btn-primary-custom btn-custom" 
+                                        id="next-btn" onclick="nextQuestion()" disabled>
+                                    次の質問<i class="fas fa-chevron-right ms-2"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // テスト状態管理
+        let currentQuestionIndex = 0;
+        let questions = [];
+        let answers = {};
+        let target = '{{ target }}';
+
+        // 11段階評価スケール生成
+        function generateRatingScale() {
+            const ratingScale = document.getElementById('rating-scale');
+            ratingScale.innerHTML = '';
+            
+            const labels = [
+                '全くそう思わない', '', '', '', '', 
+                'どちらでもない', 
+                '', '', '', '', '非常にそう思う'
+            ];
+            
+            for (let i = 0; i <= 10; i++) {
+                const option = document.createElement('div');
+                option.className = 'rating-option';
+                option.setAttribute('data-value', i);
+                option.onclick = () => selectRating(i);
+                
+                option.innerHTML = `
+                    <span class="rating-number">${i}</span>
+                    <span class="rating-label">${labels[i]}</span>
+                `;
+                
+                ratingScale.appendChild(option);
+            }
+        }
+
+        // 評価選択
+        function selectRating(value) {
+            // 既存の選択を解除
+            document.querySelectorAll('.rating-option').forEach(opt => {
+                opt.classList.remove('selected');
+            });
+            
+            // 新しい選択を設定
+            document.querySelector(`[data-value="${value}"]`).classList.add('selected');
+            
+            // 回答を保存
+            answers[questions[currentQuestionIndex].question_id] = value;
+            
+            // 次へボタンを有効化
+            document.getElementById('next-btn').disabled = false;
+        }
+
+        // 質問読み込み
+        async function loadQuestions() {
+            try {
+                const response = await fetch(`/api/v1/questions/?user_target=${target}`);
+                const data = await response.json();
+                questions = data.questions;
+                
+                document.getElementById('total-questions').textContent = questions.length;
+                displayQuestion();
+            } catch (error) {
+                console.error('質問の読み込みに失敗しました:', error);
+            }
+        }
+
+        // 質問表示
+        function displayQuestion() {
+            if (currentQuestionIndex >= questions.length) {
+                completeTest();
+                return;
+            }
+            
+            const question = questions[currentQuestionIndex];
+            
+            // 質問内容更新
+            document.getElementById('question-number').textContent = `質問 ${currentQuestionIndex + 1}`;
+            document.getElementById('question-text').textContent = question.question_text;
+            document.getElementById('category-indicator').textContent = getCategoryName(question.category);
+            
+            // 進捗更新
+            document.getElementById('current-question').textContent = currentQuestionIndex + 1;
+            const progress = ((currentQuestionIndex + 1) / questions.length) * 100;
+            document.getElementById('progress-bar').style.width = `${progress}%`;
+            
+            // 既存の回答があれば復元
+            const existingAnswer = answers[question.question_id];
+            document.querySelectorAll('.rating-option').forEach(opt => {
+                opt.classList.remove('selected');
+            });
+            
+            if (existingAnswer !== undefined) {
+                document.querySelector(`[data-value="${existingAnswer}"]`).classList.add('selected');
+                document.getElementById('next-btn').disabled = false;
+            } else {
+                document.getElementById('next-btn').disabled = true;
+            }
+            
+            // ナビゲーションボタン更新
+            document.getElementById('prev-btn').disabled = currentQuestionIndex === 0;
+            
+            // 最後の質問の場合
+            if (currentQuestionIndex === questions.length - 1) {
+                document.getElementById('next-btn').innerHTML = 
+                    '結果を見る<i class="fas fa-chart-bar ms-2"></i>';
+            } else {
+                document.getElementById('next-btn').innerHTML = 
+                    '次の質問<i class="fas fa-chevron-right ms-2"></i>';
+            }
+        }
+
+        // カテゴリ名取得
+        function getCategoryName(category) {
+            const categoryNames = {
+                'sportsmanship': 'スポーツマンシップ',
+                'athlete_mind': 'アスリートマインド',
+                'self_affirmation': '自己肯定感'
+            };
+            return categoryNames[category] || category;
+        }
+
+        // 次の質問
+        function nextQuestion() {
+            if (currentQuestionIndex < questions.length - 1) {
+                currentQuestionIndex++;
+                displayQuestion();
+            } else {
+                completeTest();
+            }
+        }
+
+        // 前の質問
+        function previousQuestion() {
+            if (currentQuestionIndex > 0) {
+                currentQuestionIndex--;
+                displayQuestion();
+            }
+        }
+
+        // テスト完了
+        async function completeTest() {
+            try {
+                const response = await fetch('/api/v1/test/submit', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        target_selection: target,
+                        answers: answers
+                    })
+                });
+                
+                const result = await response.json();
+                window.location.href = `/results/${result.result_id}`;
+            } catch (error) {
+                console.error('テスト結果の保存に失敗しました:', error);
+                alert('テスト結果の保存に失敗しました。もう一度お試しください。');
+            }
+        }
+
+        // 初期化
+        document.addEventListener('DOMContentLoaded', function() {
+            generateRatingScale();
+            loadQuestions();
+        });
+    </script>
+</body>
+</html>

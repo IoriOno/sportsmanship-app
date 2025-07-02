@@ -1,0 +1,265 @@
+import { useState, useCallback, useMemo } from 'react';
+
+interface Question {
+  question_id: string;
+  question_number: number;
+  question_text: string;
+  category: string;
+  subcategory: string;
+  target: string;
+  is_active: boolean;
+}
+
+interface CategoryProgress {
+  category: string;
+  totalQuestions: number;
+  answeredQuestions: number;
+  completionPercentage: number;
+  isCompleted: boolean;
+  subcategories: SubcategoryProgress[];
+}
+
+interface SubcategoryProgress {
+  subcategory: string;
+  totalQuestions: number;
+  answeredQuestions: number;
+  completionPercentage: number;
+  isCompleted: boolean;
+  questions: Question[];
+}
+
+// セクション構造の定義
+interface SectionStructure {
+  [category: string]: string[];
+}
+
+const SECTION_STRUCTURE: SectionStructure = {
+  sportsmanship: ['courage', 'resilience', 'cooperation', 'natural_acceptance', 'non_rationality'],
+  athlete_mind: ['introspection', 'self_control'],
+  self_affirmation: ['self_determination']
+};
+
+interface SectionProgress {
+  category: string;
+  section: string;
+  sectionIndex: number;
+  totalQuestions: number;
+  answeredQuestions: number;
+  completionPercentage: number;
+  isCompleted: boolean;
+  questions: Question[];
+}
+
+interface TestProgressState {
+  answers: Record<number, number>;
+  currentCategory: string;
+  currentSection: string;
+  currentCategoryIndex: number;
+  currentSectionIndex: number;
+  categories: CategoryProgress[];
+  sections: SectionProgress[];
+  overallProgress: {
+    totalQuestions: number;
+    answeredQuestions: number;
+    completionPercentage: number;
+    isCompleted: boolean;
+    totalSections: number;
+    completedSections: number;
+  };
+}
+
+export const useTestProgress = (questions: Question[]) => {
+  const [answers, setAnswers] = useState<Record<number, number>>({});
+  const [currentCategoryIndex, setCurrentCategoryIndex] = useState<number>(0);
+  const [currentSectionIndex, setCurrentSectionIndex] = useState<number>(0);
+
+  // カテゴリの順序を定義（useMemo内に移動）
+  const categoryOrder = useMemo(() => ['sportsmanship', 'athlete_mind', 'self_affirmation'], []);
+
+  // 回答を設定する関数
+  const setAnswer = useCallback((questionNumber: number, value: number) => {
+    setAnswers(prev => ({
+      ...prev,
+      [questionNumber]: value
+    }));
+  }, []);
+
+  // 回答を削除する関数
+  const removeAnswer = useCallback((questionNumber: number) => {
+    setAnswers(prev => {
+      const newAnswers = { ...prev };
+      delete newAnswers[questionNumber];
+      return newAnswers;
+    });
+  }, []);
+
+  // 進捗データを計算
+  const progressData = useMemo((): TestProgressState => {
+    // カテゴリごとに質問をグループ化
+    const questionsByCategory = questions.reduce((acc, question) => {
+      if (!acc[question.category]) {
+        acc[question.category] = [];
+      }
+      acc[question.category].push(question);
+      return acc;
+    }, {} as Record<string, Question[]>);
+
+    // カテゴリ進捗を計算
+    const categories: CategoryProgress[] = categoryOrder.map(categoryKey => {
+      const categoryQuestions = questionsByCategory[categoryKey] || [];
+      
+      // サブカテゴリごとにグループ化
+      const questionsBySubcategory = categoryQuestions.reduce((acc, question) => {
+        if (!acc[question.subcategory]) {
+          acc[question.subcategory] = [];
+        }
+        acc[question.subcategory].push(question);
+        return acc;
+      }, {} as Record<string, Question[]>);
+
+      // サブカテゴリ進捗を計算
+      const subcategories: SubcategoryProgress[] = Object.entries(questionsBySubcategory).map(
+        ([subcategoryKey, subcategoryQuestions]) => {
+          const answeredQuestions = subcategoryQuestions.filter(q => 
+            answers[q.question_number] !== undefined
+          ).length;
+          const totalQuestions = subcategoryQuestions.length;
+          const completionPercentage = totalQuestions > 0 ? (answeredQuestions / totalQuestions) * 100 : 0;
+
+          return {
+            subcategory: subcategoryKey,
+            totalQuestions,
+            answeredQuestions,
+            completionPercentage,
+            isCompleted: answeredQuestions === totalQuestions && totalQuestions > 0,
+            questions: subcategoryQuestions.sort((a, b) => a.question_number - b.question_number)
+          };
+        }
+      );
+
+      // カテゴリ全体の進捗を計算
+      const totalQuestions = categoryQuestions.length;
+      const answeredQuestions = categoryQuestions.filter(q => 
+        answers[q.question_number] !== undefined
+      ).length;
+      const completionPercentage = totalQuestions > 0 ? (answeredQuestions / totalQuestions) * 100 : 0;
+
+      return {
+        category: categoryKey,
+        totalQuestions,
+        answeredQuestions,
+        completionPercentage,
+        isCompleted: answeredQuestions === totalQuestions && totalQuestions > 0,
+        subcategories: subcategories.sort((a, b) => {
+          // サブカテゴリの順序を定義
+          const subcategoryOrder: Record<string, number> = {
+            courage: 1,
+            resilience: 2,
+            cooperation: 3,
+            natural_acceptance: 4,
+            non_rationality: 5,
+            introspection: 6,
+            self_control: 7,
+            self_determination: 8
+          };
+          return (subcategoryOrder[a.subcategory] || 999) - (subcategoryOrder[b.subcategory] || 999);
+        })
+      };
+    });
+
+    // 全体の進捗を計算
+    const totalQuestions = questions.length;
+    const answeredQuestions = Object.keys(answers).length;
+    const overallCompletionPercentage = totalQuestions > 0 ? (answeredQuestions / totalQuestions) * 100 : 0;
+
+    return {
+      answers,
+      currentCategory,
+      categories,
+      overallProgress: {
+        totalQuestions,
+        answeredQuestions,
+        completionPercentage: overallCompletionPercentage,
+        isCompleted: answeredQuestions === totalQuestions && totalQuestions > 0
+      }
+    };
+  }, [questions, answers, currentCategory, categoryOrder]);
+
+  // 次のカテゴリに進む
+  const moveToNextCategory = useCallback(() => {
+    const currentIndex = categoryOrder.indexOf(currentCategory);
+    if (currentIndex < categoryOrder.length - 1) {
+      setCurrentCategory(categoryOrder[currentIndex + 1]);
+    }
+  }, [currentCategory, categoryOrder]);
+
+  // 前のカテゴリに戻る
+  const moveToPreviousCategory = useCallback(() => {
+    const currentIndex = categoryOrder.indexOf(currentCategory);
+    if (currentIndex > 0) {
+      setCurrentCategory(categoryOrder[currentIndex - 1]);
+    }
+  }, [currentCategory, categoryOrder]);
+
+  // 特定のカテゴリに移動
+  const moveToCategory = useCallback((category: string) => {
+    if (categoryOrder.includes(category)) {
+      setCurrentCategory(category);
+    }
+  }, []);
+
+  // 現在のカテゴリが完了しているかチェック
+  const isCurrentCategoryCompleted = useMemo(() => {
+    const currentCategoryData = progressData.categories.find(cat => cat.category === currentCategory);
+    return currentCategoryData?.isCompleted || false;
+  }, [progressData.categories, currentCategory, categoryOrder]);
+
+  // 次のカテゴリが利用可能かチェック
+  const canMoveToNextCategory = useMemo(() => {
+    const currentIndex = categoryOrder.indexOf(currentCategory);
+    return currentIndex < categoryOrder.length - 1 && isCurrentCategoryCompleted;
+  }, [currentCategory, isCurrentCategoryCompleted, categoryOrder]);
+
+  // 回答をクリア
+  const clearAnswers = useCallback(() => {
+    setAnswers({});
+  }, []);
+
+  // 特定のカテゴリの回答をクリア
+  const clearCategoryAnswers = useCallback((category: string) => {
+    const categoryQuestions = questions.filter(q => q.category === category);
+    setAnswers(prev => {
+      const newAnswers = { ...prev };
+      categoryQuestions.forEach(q => {
+        delete newAnswers[q.question_number];
+      });
+      return newAnswers;
+    });
+  }, [questions]);
+
+  return {
+    // Progress data
+    ...progressData,
+    
+    // Actions
+    setAnswer,
+    removeAnswer,
+    moveToNextCategory,
+    moveToPreviousCategory,
+    moveToCategory,
+    clearAnswers,
+    clearCategoryAnswers,
+    
+    // Computed values
+    isCurrentCategoryCompleted,
+    canMoveToNextCategory,
+    
+    // Helper functions
+    getCategoryProgress: (category: string) => 
+      progressData.categories.find(cat => cat.category === category),
+    getSubcategoryProgress: (category: string, subcategory: string) => 
+      progressData.categories
+        .find(cat => cat.category === category)
+        ?.subcategories.find(sub => sub.subcategory === subcategory),
+  };
+};

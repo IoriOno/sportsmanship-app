@@ -1,0 +1,945 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>管理者ダッシュボード - スポーツマンシップメンタルテスト</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --success-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            --warning-gradient: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+            --danger-gradient: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+            --info-gradient: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+            --dark-gradient: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            --shadow-soft: 0 10px 30px rgba(0,0,0,0.1);
+            --shadow-medium: 0 15px 35px rgba(0,0,0,0.15);
+            --sidebar-width: 280px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Noto Sans JP', sans-serif;
+            background: #f8f9fa;
+            color: #2c3e50;
+        }
+
+        .admin-container {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        .sidebar {
+            width: var(--sidebar-width);
+            background: var(--primary-gradient);
+            color: white;
+            position: fixed;
+            height: 100vh;
+            overflow-y: auto;
+            z-index: 1000;
+            transition: transform 0.3s ease;
+        }
+
+        .sidebar-header {
+            padding: 2rem 1.5rem;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .sidebar-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .sidebar-subtitle {
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+
+        .sidebar-nav {
+            padding: 1rem 0;
+        }
+
+        .nav-item {
+            margin-bottom: 0.5rem;
+        }
+
+        .nav-link {
+            display: flex;
+            align-items: center;
+            padding: 1rem 1.5rem;
+            color: rgba(255,255,255,0.9);
+            text-decoration: none;
+            transition: all 0.3s ease;
+            border-left: 3px solid transparent;
+        }
+
+        .nav-link:hover,
+        .nav-link.active {
+            background: rgba(255,255,255,0.1);
+            color: white;
+            border-left-color: white;
+        }
+
+        .nav-icon {
+            width: 20px;
+            margin-right: 1rem;
+            text-align: center;
+        }
+
+        .main-content {
+            flex: 1;
+            margin-left: var(--sidebar-width);
+            transition: margin-left 0.3s ease;
+        }
+
+        .top-bar {
+            background: white;
+            padding: 1rem 2rem;
+            border-bottom: 1px solid #e9ecef;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: var(--shadow-soft);
+        }
+
+        .page-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--primary-gradient);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+        }
+
+        .content-area {
+            padding: 2rem;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 15px;
+            padding: 1.5rem;
+            box-shadow: var(--shadow-soft);
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+        }
+
+        .stat-card.primary::before { background: var(--primary-gradient); }
+        .stat-card.success::before { background: var(--success-gradient); }
+        .stat-card.warning::before { background: var(--warning-gradient); }
+        .stat-card.danger::before { background: var(--danger-gradient); }
+
+        .stat-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .stat-title {
+            font-size: 0.9rem;
+            color: #7f8c8d;
+            font-weight: 500;
+        }
+
+        .stat-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.2rem;
+        }
+
+        .stat-icon.primary { background: var(--primary-gradient); }
+        .stat-icon.success { background: var(--success-gradient); }
+        .stat-icon.warning { background: var(--warning-gradient); }
+        .stat-icon.danger { background: var(--danger-gradient); }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #2c3e50;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-change {
+            display: flex;
+            align-items: center;
+            font-size: 0.8rem;
+        }
+
+        .stat-change.positive { color: #27ae60; }
+        .stat-change.negative { color: #e74c3c; }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .chart-card {
+            background: white;
+            border-radius: 15px;
+            padding: 2rem;
+            box-shadow: var(--shadow-soft);
+        }
+
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .chart-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .chart-controls {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .btn-chart {
+            padding: 0.5rem 1rem;
+            border: 1px solid #e9ecef;
+            background: white;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-chart.active {
+            background: var(--primary-gradient);
+            color: white;
+            border-color: transparent;
+        }
+
+        .recent-activities {
+            background: white;
+            border-radius: 15px;
+            padding: 2rem;
+            box-shadow: var(--shadow-soft);
+        }
+
+        .activity-header {
+            display: flex;
+            justify-content: between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .activity-list {
+            list-style: none;
+        }
+
+        .activity-item {
+            display: flex;
+            align-items: center;
+            padding: 1rem 0;
+            border-bottom: 1px solid #f8f9fa;
+        }
+
+        .activity-item:last-child {
+            border-bottom: none;
+        }
+
+        .activity-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 1rem;
+            font-size: 0.9rem;
+            color: white;
+        }
+
+        .activity-content {
+            flex: 1;
+        }
+
+        .activity-title {
+            font-weight: 500;
+            margin-bottom: 0.2rem;
+        }
+
+        .activity-time {
+            font-size: 0.8rem;
+            color: #7f8c8d;
+        }
+
+        .data-table-card {
+            background: white;
+            border-radius: 15px;
+            padding: 2rem;
+            box-shadow: var(--shadow-soft);
+            margin-bottom: 2rem;
+        }
+
+        .table-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .table-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .table-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .btn-action {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary {
+            background: var(--primary-gradient);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: #e9ecef;
+            color: #495057;
+        }
+
+        .btn-action:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-soft);
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+        }
+
+        .data-table th,
+        .data-table td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .data-table th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .data-table tbody tr:hover {
+            background: #f8f9fa;
+        }
+
+        .status-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        .status-active {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-completed {
+            background: #cce5ff;
+            color: #004085;
+        }
+
+        .status-pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .mobile-toggle {
+            display: none;
+            position: fixed;
+            top: 1rem;
+            left: 1rem;
+            z-index: 1001;
+            background: var(--primary-gradient);
+            color: white;
+            border: none;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            font-size: 1.2rem;
+            cursor: pointer;
+        }
+
+        @media (max-width: 768px) {
+            .mobile-toggle {
+                display: block;
+            }
+
+            .sidebar {
+                transform: translateX(-100%);
+            }
+
+            .sidebar.open {
+                transform: translateX(0);
+            }
+
+            .main-content {
+                margin-left: 0;
+            }
+
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .top-bar {
+                padding: 1rem;
+            }
+
+            .content-area {
+                padding: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="admin-container">
+        <!-- Mobile Toggle -->
+        <button class="mobile-toggle" onclick="toggleSidebar()">
+            <i class="fas fa-bars"></i>
+        </button>
+
+        <!-- Sidebar -->
+        <nav class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h1 class="sidebar-title">
+                    <i class="fas fa-brain me-2"></i>
+                    管理者パネル
+                </h1>
+                <p class="sidebar-subtitle">スポーツマンシップメンタルテスト</p>
+            </div>
+
+            <ul class="sidebar-nav">
+                <li class="nav-item">
+                    <a href="#dashboard" class="nav-link active" data-section="dashboard">
+                        <i class="fas fa-tachometer-alt nav-icon"></i>
+                        ダッシュボード
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#tests" class="nav-link" data-section="tests">
+                        <i class="fas fa-clipboard-list nav-icon"></i>
+                        テスト管理
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#questions" class="nav-link" data-section="questions">
+                        <i class="fas fa-question-circle nav-icon"></i>
+                        質問管理
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#analytics" class="nav-link" data-section="analytics">
+                        <i class="fas fa-chart-bar nav-icon"></i>
+                        分析・統計
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#users" class="nav-link" data-section="users">
+                        <i class="fas fa-users nav-icon"></i>
+                        ユーザー管理
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#export" class="nav-link" data-section="export">
+                        <i class="fas fa-download nav-icon"></i>
+                        エクスポート
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#settings" class="nav-link" data-section="settings">
+                        <i class="fas fa-cog nav-icon"></i>
+                        システム設定
+                    </a>
+                </li>
+            </ul>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Top Bar -->
+            <div class="top-bar">
+                <h1 class="page-title" id="pageTitle">ダッシュボード</h1>
+                <div class="user-info">
+                    <span>管理者</span>
+                    <div class="user-avatar">
+                        <i class="fas fa-user"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Content Area -->
+            <div class="content-area">
+                <!-- Dashboard Section -->
+                <div id="dashboard-section" class="content-section">
+                    <!-- Stats Grid -->
+                    <div class="stats-grid">
+                        <div class="stat-card primary">
+                            <div class="stat-header">
+                                <span class="stat-title">総テスト実施数</span>
+                                <div class="stat-icon primary">
+                                    <i class="fas fa-clipboard-check"></i>
+                                </div>
+                            </div>
+                            <div class="stat-value" id="totalTests">-</div>
+                            <div class="stat-change positive">
+                                <i class="fas fa-arrow-up me-1"></i>
+                                +12% 今月
+                            </div>
+                        </div>
+
+                        <div class="stat-card success">
+                            <div class="stat-header">
+                                <span class="stat-title">アクティブユーザー</span>
+                                <div class="stat-icon success">
+                                    <i class="fas fa-users"></i>
+                                </div>
+                            </div>
+                            <div class="stat-value" id="activeUsers">-</div>
+                            <div class="stat-change positive">
+                                <i class="fas fa-arrow-up me-1"></i>
+                                +8% 今週
+                            </div>
+                        </div>
+
+                        <div class="stat-card warning">
+                            <div class="stat-header">
+                                <span class="stat-title">今日のテスト</span>
+                                <div class="stat-icon warning">
+                                    <i class="fas fa-calendar-day"></i>
+                                </div>
+                            </div>
+                            <div class="stat-value" id="todayTests">-</div>
+                            <div class="stat-change positive">
+                                <i class="fas fa-arrow-up me-1"></i>
+                                +15% 昨日比
+                            </div>
+                        </div>
+
+                        <div class="stat-card danger">
+                            <div class="stat-header">
+                                <span class="stat-title">平均完了時間</span>
+                                <div class="stat-icon danger">
+                                    <i class="fas fa-clock"></i>
+                                </div>
+                            </div>
+                            <div class="stat-value" id="avgTime">-</div>
+                            <div class="stat-change negative">
+                                <i class="fas fa-arrow-down me-1"></i>
+                                -2分 先月比
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Dashboard Grid -->
+                    <div class="dashboard-grid">
+                        <!-- Chart -->
+                        <div class="chart-card">
+                            <div class="chart-header">
+                                <h3 class="chart-title">テスト実施数推移</h3>
+                                <div class="chart-controls">
+                                    <button class="btn-chart active" data-period="week">週間</button>
+                                    <button class="btn-chart" data-period="month">月間</button>
+                                    <button class="btn-chart" data-period="year">年間</button>
+                                </div>
+                            </div>
+                            <canvas id="testsChart" height="400"></canvas>
+                        </div>
+
+                        <!-- Recent Activities -->
+                        <div class="recent-activities">
+                            <div class="activity-header">
+                                <h3 class="chart-title">最近のアクティビティ</h3>
+                            </div>
+                            <ul class="activity-list" id="activityList">
+                                <!-- Dynamic content -->
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- Recent Tests Table -->
+                    <div class="data-table-card">
+                        <div class="table-header">
+                            <h3 class="table-title">最近のテスト結果</h3>
+                            <div class="table-actions">
+                                <button class="btn-action btn-secondary" onclick="refreshData()">
+                                    <i class="fas fa-sync-alt"></i>
+                                    更新
+                                </button>
+                                <a href="#export" class="btn-action btn-primary">
+                                    <i class="fas fa-download"></i>
+                                    エクスポート
+                                </a>
+                            </div>
+                        </div>
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>対象</th>
+                                    <th>実施日</th>
+                                    <th>アスリートタイプ</th>
+                                    <th>ステータス</th>
+                                    <th>アクション</th>
+                                </tr>
+                            </thead>
+                            <tbody id="recentTestsTable">
+                                <!-- Dynamic content -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Other sections would be added here -->
+                <div id="tests-section" class="content-section" style="display: none;">
+                    <h2>テスト管理</h2>
+                    <p>テスト管理機能の実装予定...</p>
+                </div>
+
+                <div id="questions-section" class="content-section" style="display: none;">
+                    <h2>質問管理</h2>
+                    <p>質問管理機能の実装予定...</p>
+                </div>
+
+                <div id="analytics-section" class="content-section" style="display: none;">
+                    <h2>分析・統計</h2>
+                    <p>分析・統計機能の実装予定...</p>
+                </div>
+
+                <div id="users-section" class="content-section" style="display: none;">
+                    <h2>ユーザー管理</h2>
+                    <p>ユーザー管理機能の実装予定...</p>
+                </div>
+
+                <div id="export-section" class="content-section" style="display: none;">
+                    <h2>エクスポート</h2>
+                    <p>エクスポート機能の実装予定...</p>
+                </div>
+
+                <div id="settings-section" class="content-section" style="display: none;">
+                    <h2>システム設定</h2>
+                    <p>システム設定機能の実装予定...</p>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Dashboard data
+        let dashboardData = {
+            stats: {
+                totalTests: 0,
+                activeUsers: 0,
+                todayTests: 0,
+                avgTime: '0分'
+            },
+            recentTests: [],
+            activities: []
+        };
+
+        // Initialize dashboard
+        async function initializeDashboard() {
+            try {
+                await fetchDashboardStats();
+                await fetchRecentTests();
+                await fetchRecentActivities();
+                initializeChart();
+                updateUI();
+            } catch (error) {
+                console.error('Dashboard initialization failed:', error);
+            }
+        }
+
+        // Fetch dashboard statistics
+        async function fetchDashboardStats() {
+            try {
+                // This would be replaced with actual API calls
+                dashboardData.stats = {
+                    totalTests: 1247,
+                    activeUsers: 89,
+                    todayTests: 23,
+                    avgTime: '14分'
+                };
+            } catch (error) {
+                console.error('Failed to fetch stats:', error);
+            }
+        }
+
+        // Fetch recent tests
+        async function fetchRecentTests() {
+            try {
+                // This would fetch from actual API
+                dashboardData.recentTests = [
+                    {
+                        id: 'TEST001',
+                        target: '選手',
+                        date: '2025-06-22',
+                        athleteType: 'ストライカー',
+                        status: 'completed'
+                    },
+                    {
+                        id: 'TEST002',
+                        target: '指導者',
+                        date: '2025-06-22',
+                        athleteType: 'ゲームメイカー',
+                        status: 'completed'
+                    }
+                ];
+            } catch (error) {
+                console.error('Failed to fetch recent tests:', error);
+            }
+        }
+
+        // Fetch recent activities
+        async function fetchRecentActivities() {
+            try {
+                dashboardData.activities = [
+                    {
+                        type: 'test_completed',
+                        title: 'テスト完了',
+                        description: 'USER123が選手向けテストを完了',
+                        time: '5分前',
+                        icon: 'fa-check-circle',
+                        color: 'success'
+                    },
+                    {
+                        type: 'new_user',
+                        title: '新規ユーザー',
+                        description: '新しいユーザーが登録されました',
+                        time: '15分前',
+                        icon: 'fa-user-plus',
+                        color: 'primary'
+                    }
+                ];
+            } catch (error) {
+                console.error('Failed to fetch activities:', error);
+            }
+        }
+
+        // Update UI with fetched data
+        function updateUI() {
+            // Update stats
+            document.getElementById('totalTests').textContent = dashboardData.stats.totalTests.toLocaleString();
+            document.getElementById('activeUsers').textContent = dashboardData.stats.activeUsers.toLocaleString();
+            document.getElementById('todayTests').textContent = dashboardData.stats.todayTests.toLocaleString();
+            document.getElementById('avgTime').textContent = dashboardData.stats.avgTime;
+
+            // Update recent tests table
+            const tableBody = document.getElementById('recentTestsTable');
+            tableBody.innerHTML = '';
+            
+            dashboardData.recentTests.forEach(test => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${test.id}</td>
+                    <td>${test.target}</td>
+                    <td>${test.date}</td>
+                    <td>${test.athleteType}</td>
+                    <td><span class="status-badge status-${test.status}">完了</span></td>
+                    <td>
+                        <button class="btn-action btn-secondary" onclick="viewTest('${test.id}')">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </td>
+                `;
+                tableBody.appendChild(row);
+            });
+
+            // Update activities
+            const activityList = document.getElementById('activityList');
+            activityList.innerHTML = '';
+            
+            dashboardData.activities.forEach(activity => {
+                const item = document.createElement('li');
+                item.className = 'activity-item';
+                item.innerHTML = `
+                    <div class="activity-icon" style="background: var(--${activity.color}-gradient)">
+                        <i class="fas ${activity.icon}"></i>
+                    </div>
+                    <div class="activity-content">
+                        <div class="activity-title">${activity.title}</div>
+                        <div class="activity-time">${activity.time}</div>
+                    </div>
+                `;
+                activityList.appendChild(item);
+            });
+        }
+
+        // Initialize chart
+        function initializeChart() {
+            const ctx = document.getElementById('testsChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['月', '火', '水', '木', '金', '土', '日'],
+                    datasets: [{
+                        label: 'テスト実施数',
+                        data: [12, 19, 8, 15, 23, 18, 14],
+                        borderColor: 'rgb(102, 126, 234)',
+                        backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        // Navigation handling
+        document.querySelectorAll('.nav-link').forEach(link => {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                
+                // Remove active class from all links
+                document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+                
+                // Add active class to clicked link
+                this.classList.add('active');
+                
+                // Hide all sections
+                document.querySelectorAll('.content-section').forEach(section => {
+                    section.style.display = 'none';
+                });
+                
+                // Show selected section
+                const sectionId = this.dataset.section + '-section';
+                const section = document.getElementById(sectionId);
+                if (section) {
+                    section.style.display = 'block';
+                }
+                
+                // Update page title
+                const pageTitle = this.textContent.trim();
+                document.getElementById('pageTitle').textContent = pageTitle;
+                
+                // Close sidebar on mobile
+                if (window.innerWidth <= 768) {
+                    document.getElementById('sidebar').classList.remove('open');
+                }
+            });
+        });
+
+        // Chart period controls
+        document.querySelectorAll('.btn-chart').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.btn-chart').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                // Here you would update the chart based on the selected period
+            });
+        });
+
+        // Sidebar toggle for mobile
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('open');
+        }
+
+        // Utility functions
+        function refreshData() {
+            initializeDashboard();
+        }
+
+        function viewTest(testId) {
+            alert(`テスト ${testId} の詳細を表示`);
+        }
+
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', initializeDashboard);
+    </script>
+</body>
+</html>

@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>スポーツマンシップメンタルテスト - 対象選択</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --success-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            --warning-gradient: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+            --danger-gradient: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+            --info-gradient: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+            --dark-gradient: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            --shadow-soft: 0 10px 30px rgba(0,0,0,0.1);
+            --shadow-medium: 0 15px 35px rgba(0,0,0,0.15);
+            --shadow-strong: 0 20px 40px rgba(0,0,0,0.2);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Noto Sans JP', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="20" cy="20" r="1" fill="rgba(255,255,255,0.1)"/><circle cx="60" cy="40" r="1" fill="rgba(255,255,255,0.08)"/><circle cx="80" cy="70" r="1" fill="rgba(255,255,255,0.12)"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
+            z-index: 0;
+        }
+
+        .main-container {
+            position: relative;
+            z-index: 1;
+            max-width: 1200px;
+            width: 100%;
+            padding: 2rem;
+        }
+
+        .header-section {
+            text-align: center;
+            margin-bottom: 3rem;
+            animation: fadeInUp 0.8s ease-out;
+        }
+
+        .header-title {
+            color: white;
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        }
+
+        .header-subtitle {
+            color: rgba(255,255,255,0.9);
+            font-size: 1.2rem;
+            font-weight: 300;
+            margin-bottom: 0.5rem;
+        }
+
+        .header-description {
+            color: rgba(255,255,255,0.8);
+            font-size: 1rem;
+            max-width: 600px;
+            margin: 0 auto;
+            line-height: 1.6;
+        }
+
+        .selection-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 3rem;
+        }
+
+        .target-card {
+            background: white;
+            border-radius: 20px;
+            padding: 2rem 1.5rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            box-shadow: var(--shadow-soft);
+            border: 3px solid transparent;
+            position: relative;
+            overflow: hidden;
+            animation: fadeInUp 0.8s ease-out;
+        }
+
+        .target-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: var(--primary-gradient);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            z-index: 0;
+        }
+
+        .target-card:hover::before {
+            opacity: 0.05;
+        }
+
+        .target-card * {
+            position: relative;
+            z-index: 1;
+        }
+
+        .target-card:hover {
+            transform: translateY(-10px) scale(1.02);
+            box-shadow: var(--shadow-strong);
+            border-color: rgba(102, 126, 234, 0.3);
+        }
+
+        .target-card.selected {
+            border-color: #667eea;
+            transform: translateY(-5px) scale(1.05);
+            box-shadow: var(--shadow-strong);
+        }
+
+        .target-card.selected::before {
+            opacity: 0.1;
+        }
+
+        .target-icon {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 1.5rem;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            color: white;
+            transition: all 0.3s ease;
+        }
+
+        .target-card:nth-child(1) .target-icon { background: var(--success-gradient); }
+        .target-card:nth-child(2) .target-icon { background: var(--warning-gradient); }
+        .target-card:nth-child(3) .target-icon { background: var(--danger-gradient); }
+        .target-card:nth-child(4) .target-icon { background: var(--info-gradient); }
+        .target-card:nth-child(5) .target-icon { background: var(--dark-gradient); }
+
+        .target-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 0.5rem;
+        }
+
+        .target-description {
+            font-size: 0.9rem;
+            color: #7f8c8d;
+            line-height: 1.4;
+            margin-bottom: 1rem;
+        }
+
+        .target-stats {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid #ecf0f1;
+        }
+
+        .stat-item {
+            text-align: center;
+            flex: 1;
+        }
+
+        .stat-value {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            color: #95a5a6;
+        }
+
+        .action-section {
+            text-align: center;
+            animation: fadeInUp 1s ease-out;
+        }
+
+        .start-button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 1rem 2.5rem;
+            font-size: 1.1rem;
+            font-weight: 600;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: var(--shadow-medium);
+            position: relative;
+            overflow: hidden;
+            min-width: 200px;
+        }
+
+        .start-button:hover {
+            transform: translateY(-3px);
+            box-shadow: var(--shadow-strong);
+        }
+
+        .start-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .start-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .start-button:hover::before {
+            left: 100%;
+        }
+
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(102, 126, 234, 0.9);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+
+        .loading-content {
+            text-align: center;
+            color: white;
+        }
+
+        .loading-spinner {
+            width: 60px;
+            height: 60px;
+            border: 4px solid rgba(255,255,255,0.3);
+            border-top: 4px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        .progress-section {
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .progress-title {
+            color: white;
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+
+        .progress-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+        }
+
+        .progress-item {
+            text-align: center;
+            color: white;
+        }
+
+        .progress-number {
+            font-size: 2rem;
+            font-weight: 700;
+            display: block;
+            text-shadow: 0 2px 5px rgba(0,0,0,0.3);
+        }
+
+        .progress-label {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 768px) {
+            .header-title {
+                font-size: 2rem;
+            }
+
+            .selection-grid {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+
+            .target-card {
+                padding: 1.5rem 1rem;
+            }
+
+            .progress-grid {
+                grid-template-columns: 1fr;
+                gap: 0.5rem;
+            }
+
+            .progress-number {
+                font-size: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="main-container">
+        <!-- Header Section -->
+        <div class="header-section">
+            <h1 class="header-title">
+                <i class="fas fa-brain me-3"></i>
+                スポーツマンシップメンタルテスト
+            </h1>
+            <p class="header-subtitle">科学的アプローチによる包括的メンタル分析システム</p>
+            <p class="header-description">
+                379問の詳細な質問を通じて、あなたのスポーツマンシップ、アスリートマインド、自己肯定感を科学的に分析し、
+                パーソナライズされたアスリートタイプを判定します。
+            </p>
+        </div>
+
+        <!-- Progress Section -->
+        <div class="progress-section">
+            <h3 class="progress-title">
+                <i class="fas fa-chart-line me-2"></i>
+                テスト構成
+            </h3>
+            <div class="progress-grid">
+                <div class="progress-item">
+                    <span class="progress-number">379</span>
+                    <span class="progress-label">総質問数</span>
+                </div>
+                <div class="progress-item">
+                    <span class="progress-number">5</span>
+                    <span class="progress-label">アスリートタイプ</span>
+                </div>
+                <div class="progress-item">
+                    <span class="progress-number">15</span>
+                    <span class="progress-label">分析項目</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Target Selection Grid -->
+        <div class="selection-grid">
+            <div class="target-card" data-target="player">
+                <div class="target-icon">
+                    <i class="fas fa-running"></i>
+                </div>
+                <h3 class="target-title">選手</h3>
+                <p class="target-description">
+                    競技者として活動している方向けの専門的分析
+                </p>
+                <div class="target-stats">
+                    <div class="stat-item">
+                        <div class="stat-value">99</div>
+                        <div class="stat-label">質問</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">15</div>
+                        <div class="stat-label">分</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="target-card" data-target="coach">
+                <div class="target-icon">
+                    <i class="fas fa-chalkboard-teacher"></i>
+                </div>
+                <h3 class="target-title">指導者</h3>
+                <p class="target-description">
+                    コーチ・監督の指導力向上のための分析
+                </p>
+                <div class="target-stats">
+                    <div class="stat-item">
+                        <div class="stat-value">99</div>
+                        <div class="stat-label">質問</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">15</div>
+                        <div class="stat-label">分</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="target-card" data-target="mother">
+                <div class="target-icon">
+                    <i class="fas fa-heart"></i>
+                </div>
+                <h3 class="target-title">母親</h3>
+                <p class="target-description">
+                    サポート母親のメンタルヘルス分析
+                </p>
+                <div class="target-stats">
+                    <div class="stat-item">
+                        <div class="stat-value">99</div>
+                        <div class="stat-label">質問</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">15</div>
+                        <div class="stat-label">分</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="target-card" data-target="father">
+                <div class="target-icon">
+                    <i class="fas fa-hand-holding-heart"></i>
+                </div>
+                <h3 class="target-title">父親</h3>
+                <p class="target-description">
+                    サポート父親のメンタルヘルス分析
+                </p>
+                <div class="target-stats">
+                    <div class="stat-item">
+                        <div class="stat-value">99</div>
+                        <div class="stat-label">質問</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">15</div>
+                        <div class="stat-label">分</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="target-card" data-target="adult">
+                <div class="target-icon">
+                    <i class="fas fa-user-tie"></i>
+                </div>
+                <h3 class="target-title">大人・一般</h3>
+                <p class="target-description">
+                    一般成人向けの総合的メンタル分析
+                </p>
+                <div class="target-stats">
+                    <div class="stat-item">
+                        <div class="stat-value">99</div>
+                        <div class="stat-label">質問</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">15</div>
+                        <div class="stat-label">分</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Action Section -->
+        <div class="action-section">
+            <button class="start-button" id="startTestBtn" disabled>
+                <i class="fas fa-play me-2"></i>
+                テストを開始する
+            </button>
+            <p class="mt-3 text-white-50">
+                <small>
+                    <i class="fas fa-lock me-1"></i>
+                    回答データは匿名で処理され、科学的分析にのみ使用されます
+                </small>
+            </p>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-content">
+            <div class="loading-spinner"></div>
+            <h4>テストを準備中...</h4>
+            <p>質問データを読み込んでいます</p>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let selectedTarget = null;
+
+        // Target card selection
+        document.querySelectorAll('.target-card').forEach(card => {
+            card.addEventListener('click', function() {
+                // Remove previous selection
+                document.querySelectorAll('.target-card').forEach(c => c.classList.remove('selected'));
+                
+                // Add selection to clicked card
+                this.classList.add('selected');
+                selectedTarget = this.dataset.target;
+                
+                // Enable start button
+                document.getElementById('startTestBtn').disabled = false;
+                
+                // Add selection animation
+                this.style.animation = 'none';
+                this.offsetHeight; // Trigger reflow
+                this.style.animation = 'fadeInUp 0.5s ease-out';
+            });
+        });
+
+        // Start test button
+        document.getElementById('startTestBtn').addEventListener('click', function() {
+            if (!selectedTarget) {
+                alert('対象を選択してください');
+                return;
+            }
+
+            // Show loading overlay
+            document.getElementById('loadingOverlay').style.display = 'flex';
+            
+            // Simulate loading delay and redirect
+            setTimeout(() => {
+                window.location.href = `/test/${selectedTarget}`;
+            }, 1500);
+        });
+
+        // Add entrance animations with delay
+        document.querySelectorAll('.target-card').forEach((card, index) => {
+            card.style.animationDelay = `${index * 0.1}s`;
+        });
+
+        // Add hover effects
+        document.querySelectorAll('.target-card').forEach(card => {
+            card.addEventListener('mouseenter', function() {
+                const icon = this.querySelector('.target-icon');
+                icon.style.transform = 'scale(1.1) rotate(5deg)';
+            });
+
+            card.addEventListener('mouseleave', function() {
+                const icon = this.querySelector('.target-icon');
+                icon.style.transform = 'scale(1) rotate(0deg)';
+            });
+        });
+    </script>
+</body>
+</html>
