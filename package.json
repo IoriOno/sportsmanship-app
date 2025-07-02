@@ -1,0 +1,14 @@
+{
+  "name": "sportsmanship-app",
+  "version": "1.0.0",
+  "engines": {
+    "node": "18.x",
+    "npm": "9.x"
+  },
+  "scripts": {
+    "heroku-postbuild": "cd frontend && npm install && npm run build && cd ../frontend_admin && npm install && npm run build",
+    "start": "echo 'This is handled by Procfile'"
+  },
+  "dependencies": {},
+  "devDependencies": {}
+}
