@@ -44,3 +44,7 @@ temp/
 
 # Test cache
 .pytest_cache/
+frontend_admin/build/
+__pycache__/
+.DS_Store
+*.pyc
