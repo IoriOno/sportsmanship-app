@@ -7,10 +7,10 @@ headers = []
 [functions."*"]
 
 [build]
-publish = "/Users/onoiori/sportsmanship-app/frontend/build"
+publish = "/Users/onoiori/Dropbox/sportsmanship-app/frontend/build"
 publishOrigin = "config"
 commandOrigin = "config"
-base = "/Users/onoiori/sportsmanship-app/frontend"
+base = "/Users/onoiori/Dropbox/sportsmanship-app/frontend"
 command = "npm run build"
 
 [build.environment]
