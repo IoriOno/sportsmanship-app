@@ -1,5 +1,4 @@
-// frontend/src/pages/test/TestPage.tsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ExclamationTriangleIcon, ArrowLeftIcon } from '@heroicons/react/24/outline';
 import Button from '../../components/common/Button';
@@ -14,8 +13,7 @@ import {
   saveTestProgress, 
   clearTestProgress 
 } from '../../utils/testUtils';
-import { v4 as uuidv4 } from 'uuid';  // UUID生成用
-
+import { v4 as uuidv4 } from 'uuid';
 
 interface Question {
   question_id: string;
@@ -37,6 +35,7 @@ const TestPage = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
+  const [isDataReady, setIsDataReady] = useState(false);
 
   // useSectionProgressフックを使用
   const {
@@ -54,43 +53,6 @@ const TestPage = () => {
     canMoveToPreviousSection
   } = useSectionProgress(questions);
 
-  // 回答変更時の自動保存
-  useEffect(() => {
-    if (user?.role && Object.keys(answers).length > 0) {
-      saveTestProgress(answers, user.role);
-    }
-  }, [answers, user?.role]);
-
-  // ローカルストレージからユーザー情報を取得
-  useEffect(() => {
-    const userStr = localStorage.getItem('user');
-    if (userStr) {
-      try {
-        const userData = JSON.parse(userStr);
-        
-        // user_idが有効なUUID形式でない場合は修正
-        if (!isValidUUID(userData.user_id)) {
-          console.warn('無効なuser_idを検出:', userData.user_id);
-          userData.user_id = uuidv4();  // 新しいUUIDを生成
-          console.log('新しいuser_idを生成:', userData.user_id);
-          
-          // 修正したユーザー情報を保存
-          localStorage.setItem('user', JSON.stringify(userData));
-        }
-        
-        setUser(userData);
-        console.log('ユーザー情報取得成功:', userData);
-      } catch (err) {
-        console.error('ユーザー情報の取得に失敗:', err);
-        // サンプルユーザーデータを作成
-        createSampleUser();
-      }
-    } else {
-      // ローカルストレージにユーザー情報がない場合はサンプルユーザーを作成
-      createSampleUser();
-    }
-  }, []);
-
   // UUID形式をチェックする関数
   const isValidUUID = (uuid: string): boolean => {
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -98,13 +60,28 @@ const TestPage = () => {
   };
 
   // サンプルユーザーを作成する関数
-  const createSampleUser = () => {
+  const createSampleUser = useCallback(() => {
+    // 既存のユーザー情報をチェック
+    const existingUserStr = localStorage.getItem('user');
+    if (existingUserStr) {
+      try {
+        const existingUser = JSON.parse(existingUserStr);
+        if (existingUser.user_id && isValidUUID(existingUser.user_id)) {
+          // 既存の有効なユーザーIDがあればそれを使用
+          setUser(existingUser);
+          return;
+        }
+      } catch (e) {
+        console.error('既存ユーザー情報の読み込みエラー:', e);
+      }
+    }
+
     const sampleUser: User = {
-      user_id: uuidv4(),  // 有効なUUIDを生成
+      user_id: uuidv4(),
       name: '田中太郎',
       role: UserRole.PLAYER,
       email: 'tanaka@example.com',
-      club_id: uuidv4(),  // club_idも有効なUUIDに
+      club_id: 'sample-club', // 固定のクラブIDを使用
       parent_function: false,
       head_coach_function: false,
       created_date: new Date().toISOString(),
@@ -112,18 +89,43 @@ const TestPage = () => {
     };
     
     setUser(sampleUser);
-    // ローカルストレージにも保存
     localStorage.setItem('user', JSON.stringify(sampleUser));
-    // 認証状態を更新
     login({
       user: sampleUser,
       access_token: 'sample-token',
       token_type: 'bearer'
     });
     console.log('サンプルユーザー作成:', sampleUser);
-  };
+  }, [login]);
 
-  // ユーザーの対象に応じた質問をAPIから取得
+  // ユーザー情報の初期化
+  useEffect(() => {
+    const initUser = async () => {
+      const userStr = localStorage.getItem('user');
+      if (userStr) {
+        try {
+          const userData = JSON.parse(userStr);
+          
+          if (!isValidUUID(userData.user_id)) {
+            console.warn('無効なuser_idを検出:', userData.user_id);
+            createSampleUser();
+          } else {
+            setUser(userData);
+            console.log('ユーザー情報取得成功:', userData);
+          }
+        } catch (err) {
+          console.error('ユーザー情報の取得に失敗:', err);
+          createSampleUser();
+        }
+      } else {
+        createSampleUser();
+      }
+    };
+
+    initUser();
+  }, [createSampleUser]);
+
+  // 質問データの取得
   useEffect(() => {
     const loadQuestions = async () => {
       if (!user) {
@@ -133,9 +135,9 @@ const TestPage = () => {
 
       try {
         setLoading(true);
+        setIsDataReady(false);
         console.log('📥 Backend API から質問データ取得開始:', { user: user.name, role: user.role });
         
-        // 修正：services/api.ts の fetchQuestions を使用
         const userTarget = user.role;
         const url = `${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/api/v1/questions/for-user/${userTarget}`;
         console.log('API URL:', url);
@@ -143,78 +145,24 @@ const TestPage = () => {
         const response = await fetch(url);
         const data = await response.json();
 
-        let questionsData; // ← 先に宣言
-
         if (response.ok && data.questions) {
           console.log('質問データ取得成功:', {
             questionsCount: data.questions.length
           });
-          questionsData = data.questions;
+          setQuestions(data.questions);
+          setError(null);
+          setIsDataReady(true);
         } else {
           throw new Error(`API エラー: ${response.status} - ${data.message || 'Unknown error'}`);
-        }        
-        console.log('✅ Backend API から質問データ取得成功:', {
-          questionsCount: questionsData.length,
-          sampleQuestions: questionsData.slice(0, 3).map((q: any) => ({
-            question_id: q.question_id,
-            question_number: q.question_number,
-            question_text: q.question_text.substring(0, 50) + '...',
-            category: q.category,
-            subcategory: q.subcategory
-          }))
-        });
-        
-        setQuestions(questionsData);
-        setError(null);
-        
+        }
       } catch (err: any) {
         console.error('❌ Backend API質問データ取得エラー:', err);
         setError(`質問の取得に失敗しました: ${err.message}`);
         
-        // フォールバックとしてサンプルデータを使用
-        console.log('🔄 フォールバックとしてサンプルデータを使用');
-        const sampleQuestions: Question[] = Array.from({ length: 99 }, (_, i) => {
-          const questionNumber = i + 1;
-          
-          // カテゴリーとサブカテゴリーを適切に割り当て
-          let category = 'sportsmanship';
-          let subcategory = 'courage';
-          
-          if (questionNumber <= 20) {
-            category = 'sportsmanship';
-            if (questionNumber <= 4) subcategory = 'courage';
-            else if (questionNumber <= 8) subcategory = 'resilience';
-            else if (questionNumber <= 12) subcategory = 'cooperation';
-            else if (questionNumber <= 16) subcategory = 'natural_acceptance';
-            else subcategory = 'non_rationality';
-          } else if (questionNumber <= 60) {
-            category = 'athlete_mind';
-            // 10個のサブカテゴリーに4問ずつ
-            const mindIndex = Math.floor((questionNumber - 21) / 4);
-            const mindSubcategories = [
-              'introspection', 'self_control', 'devotion', 'intuition', 'sensitivity',
-              'steadiness', 'comparison', 'result', 'assertion', 'commitment'
-            ];
-            subcategory = mindSubcategories[mindIndex] || 'introspection';
-          } else {
-            category = 'self_esteem';
-            if (questionNumber <= 74) subcategory = 'self_determination';
-            else if (questionNumber <= 84) subcategory = 'self_acceptance';
-            else if (questionNumber <= 94) subcategory = 'self_worth';
-            else subcategory = 'self_efficacy';
-          }
-          
-          return {
-            question_id: uuidv4(),  // 有効なUUIDを生成
-            question_number: questionNumber,
-            question_text: `フォールバック質問${questionNumber}: これはサンプル質問です。`,
-            category: category,
-            subcategory: subcategory,
-            target: user.role,
-            is_active: true
-          };
-        });
+        // フォールバックデータの生成
+        const sampleQuestions = generateSampleQuestions(user.role);
         setQuestions(sampleQuestions);
+        setIsDataReady(true);
       } finally {
         setLoading(false);
       }
@@ -222,6 +170,61 @@ const TestPage = () => {
 
     loadQuestions();
   }, [user]);
+
+  // 回答の自動保存（データ準備完了後のみ）
+  useEffect(() => {
+    if (isDataReady && user?.role && Object.keys(answers).length > 0) {
+      const timeoutId = setTimeout(() => {
+        saveTestProgress(answers, user.role);
+        console.log('進捗を保存しました');
+      }, 1000); // 1秒のデバウンス
+
+      return () => clearTimeout(timeoutId);
+    }
+  }, [answers, user?.role, isDataReady]);
+
+  // サンプル質問データ生成関数
+  const generateSampleQuestions = (role: string): Question[] => {
+    return Array.from({ length: 99 }, (_, i) => {
+      const questionNumber = i + 1;
+      
+      let category = 'sportsmanship';
+      let subcategory = 'courage';
+      
+      if (questionNumber <= 20) {
+        category = 'sportsmanship';
+        if (questionNumber <= 4) subcategory = 'courage';
+        else if (questionNumber <= 8) subcategory = 'resilience';
+        else if (questionNumber <= 12) subcategory = 'cooperation';
+        else if (questionNumber <= 16) subcategory = 'natural_acceptance';
+        else subcategory = 'non_rationality';
+      } else if (questionNumber <= 60) {
+        category = 'athlete_mind';
+        const mindIndex = Math.floor((questionNumber - 21) / 4);
+        const mindSubcategories = [
+          'introspection', 'self_control', 'devotion', 'intuition', 'sensitivity',
+          'steadiness', 'comparison', 'result', 'assertion', 'commitment'
+        ];
+        subcategory = mindSubcategories[mindIndex] || 'introspection';
+      } else {
+        category = 'self_esteem';
+        if (questionNumber <= 74) subcategory = 'self_determination';
+        else if (questionNumber <= 84) subcategory = 'self_acceptance';
+        else if (questionNumber <= 94) subcategory = 'self_worth';
+        else subcategory = 'self_efficacy';
+      }
+      
+      return {
+        question_id: uuidv4(),
+        question_number: questionNumber,
+        question_text: `フォールバック質問${questionNumber}: これはサンプル質問です。`,
+        category: category,
+        subcategory: subcategory,
+        target: role,
+        is_active: true
+      };
+    });
+  };
 
   // ユーザーの役割を日本語に変換
   const getRoleLabel = (role: string) => {
@@ -237,9 +240,14 @@ const TestPage = () => {
 
   // テスト提出処理
   const handleSubmit = async () => {
-    // エラー状態をクリア
     setSubmitError(null);
     setValidationErrors([]);
+
+    // データ準備チェック
+    if (!isDataReady) {
+      setSubmitError('データの準備が完了していません。しばらくお待ちください。');
+      return;
+    }
 
     // 全体の完了チェック
     if (!overallProgress.isCompleted) {
@@ -260,7 +268,6 @@ const TestPage = () => {
       return;
     }
 
-    // user_idの最終チェック
     if (!isValidUUID(user.user_id)) {
       console.error('無効なuser_id:', user.user_id);
       setSubmitError('ユーザーIDが無効です。ページを再読み込みしてください。');
@@ -275,19 +282,18 @@ const TestPage = () => {
         role: user.role,
         totalQuestions: overallProgress.totalQuestions,
         answeredQuestions: overallProgress.answeredQuestions,
-        totalSections: overallProgress.totalSections,
-        completedSections: overallProgress.completedSections
+        answersCount: Object.keys(answers).length
       });
 
-      // バックエンドAPIにテスト結果を送信
+      // 回答データの最終確認
+      console.log('回答データサンプル:', Object.entries(answers).slice(0, 5));
+
       const result = await submitTestResults(answers, questions, user.user_id);
       
       console.log('テスト提出成功:', result);
 
-      // 成功時は進捗データをクリア
       clearTestProgress();
 
-      // 結果ページに遷移（result_idを使用）
       navigate(`/test/result/${result.result_id}`, {
         state: { 
           testResult: result,
@@ -299,7 +305,6 @@ const TestPage = () => {
       console.error('テスト提出エラー:', error);
       setSubmitError(error.message || 'テストの提出に失敗しました。もう一度お試しください。');
       
-      // ネットワークエラーの場合は進捗を保持
       if (user?.role) {
         saveTestProgress(answers, user.role);
       }
@@ -323,7 +328,7 @@ const TestPage = () => {
   }
 
   // エラー状態
-  if (error) {
+  if (error && questions.length === 0) {
     return (
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="text-center">
@@ -337,9 +342,10 @@ const TestPage = () => {
     );
   }
 
-  // メインコンテンツ
+  // メインコンテンツ（以下同じ）
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      {/* 既存のJSXコード */}
       {/* ナビゲーション */}
       <div className="mb-6">
         <Button
