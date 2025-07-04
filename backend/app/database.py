@@ -1,26 +1,32 @@
+# ファイル: backend/app/database.py
+
+import os
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
+from dotenv import load_dotenv
 
-from app.config import settings
+# .env の読み込み
+load_dotenv()
 
-# HerokuのDATABASE_URLを修正
-DATABASE_URL = settings.DATABASE_URL
-if DATABASE_URL.startswith("postgres://"):
-    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+# Herokuなどで使用する一般のDATABASE_URLを読み込み
+DATABASE_URL = os.getenv(
+    "DATABASE_URL",
+    "postgresql://user:password@localhost:5432/sportsmanship"
+)
 
-# Create database engine
-engine = create_engine(DATABASE_URL, pool_pre_ping=True)
+engine = create_engine(
+    DATABASE_URL,
+    pool_pre_ping=True,
+    echo=True if os.getenv("DEBUG") == "true" else False
+)
 
-# Create SessionLocal class
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-# Create Base class
 Base = declarative_base()
 
-
-# Dependency to get DB session
 def get_db():
+    """通常アプリ用のデータベースセッション"""
     db = SessionLocal()
     try:
         yield db
