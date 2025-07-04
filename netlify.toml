@@ -1,9 +1,11 @@
 [build]
+  base = "frontend"
   command = "npm run build"
-  publish = "build"
+  publish = "frontend/build"
 
 [build.environment]
   REACT_APP_API_URL = "https://sportsmanship-app-1750609620-f0d2317caca5.herokuapp.com"
+  NODE_VERSION = "18"
 
 [[redirects]]
   from = "/*"
