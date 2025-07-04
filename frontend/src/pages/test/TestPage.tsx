@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
+// frontend/src/pages/test/TestPage.tsx
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ExclamationTriangleIcon, ArrowLeftIcon } from '@heroicons/react/24/outline';
 import Button from '../../components/common/Button';
@@ -24,6 +25,35 @@ interface Question {
   target: string;
   is_active: boolean;
 }
+
+// 質問番号とカテゴリー・サブカテゴリーの正確なマッピング
+const QUESTION_MAPPING = {
+  sportsmanship: {
+    courage: { start: 1, end: 4 },           // 1-4
+    resilience: { start: 5, end: 8 },        // 5-8
+    cooperation: { start: 9, end: 12 },      // 9-12
+    natural_acceptance: { start: 13, end: 16 }, // 13-16
+    non_rationality: { start: 17, end: 20 }  // 17-20
+  },
+  athlete_mind: {
+    introspection: { start: 21, end: 24 },   // 21-24
+    self_control: { start: 25, end: 28 },    // 25-28
+    devotion: { start: 29, end: 32 },        // 29-32
+    intuition: { start: 33, end: 36 },       // 33-36
+    sensitivity: { start: 37, end: 40 },     // 37-40
+    steadiness: { start: 41, end: 44 },      // 41-44
+    comparison: { start: 45, end: 48 },      // 45-48
+    result: { start: 49, end: 52 },          // 49-52
+    assertion: { start: 53, end: 56 },       // 53-56
+    commitment: { start: 57, end: 60 }       // 57-60
+  },
+  self_esteem: {
+    self_determination: { start: 61, end: 74 }, // 61-74 (14問)
+    self_acceptance: { start: 75, end: 84 },   // 75-84 (10問)
+    self_worth: { start: 85, end: 94 },        // 85-94 (10問)
+    self_efficacy: { start: 95, end: 99 }      // 95-99 (5問)
+  }
+};
 
 const TestPage = () => {
   const navigate = useNavigate();
@@ -53,21 +83,76 @@ const TestPage = () => {
     canMoveToPreviousSection
   } = useSectionProgress(questions);
 
+  // questionNumberからquestionIdに変換して回答を設定するアダプター関数
+  const handleAnswerChange = useCallback((questionNumber: number, value: number) => {
+    const question = questions.find(q => q.question_number === questionNumber);
+    if (question) {
+      setAnswer(question.question_id, value);
+    } else {
+      console.error(`質問番号 ${questionNumber} に対応する質問が見つかりません`);
+    }
+  }, [questions, setAnswer]);
+
+  // question_idベースのanswersをquestion_numberベースに変換
+  const answersForSectionView = useMemo(() => {
+    const numberBasedAnswers: Record<number, number> = {};
+    
+    Object.entries(answers).forEach(([questionId, value]) => {
+      const question = questions.find(q => q.question_id === questionId);
+      if (question) {
+        numberBasedAnswers[question.question_number] = value;
+      }
+    });
+    
+    return numberBasedAnswers;
+  }, [answers, questions]);
+
   // UUID形式をチェックする関数
   const isValidUUID = (uuid: string): boolean => {
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
     return uuidRegex.test(uuid);
   };
 
+  // 質問番号からカテゴリーとサブカテゴリーを取得する関数
+  const getQuestionCategoryInfo = (questionNumber: number): { category: string; subcategory: string } => {
+    // スポーツマンシップ (1-20)
+    if (questionNumber >= 1 && questionNumber <= 20) {
+      for (const [subcategory, range] of Object.entries(QUESTION_MAPPING.sportsmanship)) {
+        if (questionNumber >= range.start && questionNumber <= range.end) {
+          return { category: 'sportsmanship', subcategory };
+        }
+      }
+    }
+    
+    // アスリートマインド (21-60)
+    if (questionNumber >= 21 && questionNumber <= 60) {
+      for (const [subcategory, range] of Object.entries(QUESTION_MAPPING.athlete_mind)) {
+        if (questionNumber >= range.start && questionNumber <= range.end) {
+          return { category: 'athlete_mind', subcategory };
+        }
+      }
+    }
+    
+    // 自己肯定感 (61-99)
+    if (questionNumber >= 61 && questionNumber <= 99) {
+      for (const [subcategory, range] of Object.entries(QUESTION_MAPPING.self_esteem)) {
+        if (questionNumber >= range.start && questionNumber <= range.end) {
+          return { category: 'self_esteem', subcategory };
+        }
+      }
+    }
+    
+    // デフォルト値（エラー防止）
+    return { category: 'sportsmanship', subcategory: 'courage' };
+  };
+
   // サンプルユーザーを作成する関数
   const createSampleUser = useCallback(() => {
-    // 既存のユーザー情報をチェック
     const existingUserStr = localStorage.getItem('user');
     if (existingUserStr) {
       try {
         const existingUser = JSON.parse(existingUserStr);
         if (existingUser.user_id && isValidUUID(existingUser.user_id)) {
-          // 既存の有効なユーザーIDがあればそれを使用
           setUser(existingUser);
           return;
         }
@@ -81,7 +166,7 @@ const TestPage = () => {
       name: '田中太郎',
       role: UserRole.PLAYER,
       email: 'tanaka@example.com',
-      club_id: 'sample-club', // 固定のクラブIDを使用
+      club_id: 'sample-club',
       parent_function: false,
       head_coach_function: false,
       created_date: new Date().toISOString(),
@@ -125,6 +210,27 @@ const TestPage = () => {
     initUser();
   }, [createSampleUser]);
 
+  // サンプル質問データ生成関数（修正版）
+  const generateSampleQuestions = (role: string): Question[] => {
+    const questions: Question[] = [];
+    
+    for (let i = 1; i <= 99; i++) {
+      const { category, subcategory } = getQuestionCategoryInfo(i);
+      
+      questions.push({
+        question_id: uuidv4(),
+        question_number: i,
+        question_text: `質問${i}: ${category}/${subcategory}に関する質問です。`,
+        category: category,
+        subcategory: subcategory,
+        target: role,
+        is_active: true
+      });
+    }
+    
+    return questions;
+  };
+
   // 質問データの取得
   useEffect(() => {
     const loadQuestions = async () => {
@@ -149,7 +255,29 @@ const TestPage = () => {
           console.log('質問データ取得成功:', {
             questionsCount: data.questions.length
           });
-          setQuestions(data.questions);
+          
+          // 質問データのカテゴリー・サブカテゴリーを検証・修正
+          const validatedQuestions = data.questions.map((q: Question) => {
+            const { category, subcategory } = getQuestionCategoryInfo(q.question_number);
+            
+            // カテゴリーが不正な場合は修正
+            if (q.category !== category || q.subcategory !== subcategory) {
+              console.warn(`質問${q.question_number}のカテゴリーを修正:`, {
+                old: { category: q.category, subcategory: q.subcategory },
+                new: { category, subcategory }
+              });
+              
+              return {
+                ...q,
+                category,
+                subcategory
+              };
+            }
+            
+            return q;
+          });
+          
+          setQuestions(validatedQuestions);
           setError(null);
           setIsDataReady(true);
         } else {
@@ -177,54 +305,11 @@ const TestPage = () => {
       const timeoutId = setTimeout(() => {
         saveTestProgress(answers, user.role);
         console.log('進捗を保存しました');
-      }, 1000); // 1秒のデバウンス
+      }, 1000);
 
       return () => clearTimeout(timeoutId);
     }
   }, [answers, user?.role, isDataReady]);
-
-  // サンプル質問データ生成関数
-  const generateSampleQuestions = (role: string): Question[] => {
-    return Array.from({ length: 99 }, (_, i) => {
-      const questionNumber = i + 1;
-      
-      let category = 'sportsmanship';
-      let subcategory = 'courage';
-      
-      if (questionNumber <= 20) {
-        category = 'sportsmanship';
-        if (questionNumber <= 4) subcategory = 'courage';
-        else if (questionNumber <= 8) subcategory = 'resilience';
-        else if (questionNumber <= 12) subcategory = 'cooperation';
-        else if (questionNumber <= 16) subcategory = 'natural_acceptance';
-        else subcategory = 'non_rationality';
-      } else if (questionNumber <= 60) {
-        category = 'athlete_mind';
-        const mindIndex = Math.floor((questionNumber - 21) / 4);
-        const mindSubcategories = [
-          'introspection', 'self_control', 'devotion', 'intuition', 'sensitivity',
-          'steadiness', 'comparison', 'result', 'assertion', 'commitment'
-        ];
-        subcategory = mindSubcategories[mindIndex] || 'introspection';
-      } else {
-        category = 'self_esteem';
-        if (questionNumber <= 74) subcategory = 'self_determination';
-        else if (questionNumber <= 84) subcategory = 'self_acceptance';
-        else if (questionNumber <= 94) subcategory = 'self_worth';
-        else subcategory = 'self_efficacy';
-      }
-      
-      return {
-        question_id: uuidv4(),
-        question_number: questionNumber,
-        question_text: `フォールバック質問${questionNumber}: これはサンプル質問です。`,
-        category: category,
-        subcategory: subcategory,
-        target: role,
-        is_active: true
-      };
-    });
-  };
 
   // ユーザーの役割を日本語に変換
   const getRoleLabel = (role: string) => {
@@ -238,24 +323,45 @@ const TestPage = () => {
     return roleLabels[role] || role;
   };
 
+  // デバッグ用：現在の進捗状況をログ出力
+  useEffect(() => {
+    if (overallProgress && currentSection) {
+      console.log('進捗状況:', {
+        currentSection: currentSection.title,
+        currentCategory: currentCategory,
+        totalSections: overallProgress.totalSections,
+        completedSections: overallProgress.completedSections,
+        totalQuestions: overallProgress.totalQuestions,
+        answeredQuestions: overallProgress.answeredQuestions,
+        isCompleted: overallProgress.isCompleted,
+        sectionProgress: allSections.map(s => ({
+          title: s.title,
+          answered: s.answeredQuestions,
+          total: s.totalQuestions
+        }))
+      });
+    }
+  }, [overallProgress, currentSection, currentCategory, allSections]);
+
   // テスト提出処理
   const handleSubmit = async () => {
     setSubmitError(null);
     setValidationErrors([]);
 
-    // データ準備チェック
     if (!isDataReady) {
       setSubmitError('データの準備が完了していません。しばらくお待ちください。');
       return;
     }
 
-    // 全体の完了チェック
     if (!overallProgress.isCompleted) {
-      setSubmitError('すべての質問に回答してください。');
+      // 未回答の質問を特定
+      const unansweredQuestions = questions.filter(q => !answers[q.question_id]);
+      console.error('未回答の質問:', unansweredQuestions);
+      
+      setSubmitError(`すべての質問に回答してください。未回答: ${unansweredQuestions.length}問`);
       return;
     }
 
-    // 詳細なバリデーション
     const validation = validateAnswers(answers, questions);
     if (!validation.isValid) {
       setValidationErrors(validation.errors);
@@ -284,9 +390,6 @@ const TestPage = () => {
         answeredQuestions: overallProgress.answeredQuestions,
         answersCount: Object.keys(answers).length
       });
-
-      // 回答データの最終確認
-      console.log('回答データサンプル:', Object.entries(answers).slice(0, 5));
 
       const result = await submitTestResults(answers, questions, user.user_id);
       
@@ -342,10 +445,20 @@ const TestPage = () => {
     );
   }
 
-  // メインコンテンツ（以下同じ）
+  // currentSectionがundefinedの場合の処理
+  if (!currentSection) {
+    return (
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="text-center">
+          <p className="text-gray-600">セクションを読み込んでいます...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // メインコンテンツ
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      {/* 既存のJSXコード */}
       {/* ナビゲーション */}
       <div className="mb-6">
         <Button
@@ -386,15 +499,13 @@ const TestPage = () => {
       </div>
 
       {/* セクション表示 */}
-      {currentSection && (
-        <div className="mb-8">
-          <SectionView
-            section={currentSection}
-            answers={answers}
-            onAnswerChange={setAnswer}
-          />
-        </div>
-      )}
+      <div className="mb-8">
+        <SectionView
+          section={currentSection}
+          answers={answersForSectionView}
+          onAnswerChange={handleAnswerChange}
+        />
+      </div>
 
       {/* エラー表示 */}
       {submitError && (

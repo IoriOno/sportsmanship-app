@@ -1,4 +1,4 @@
-// frontend/src/hooks/userSectionProgress.ts
+// frontend/src/hooks/useSectionProgress.ts
 import { useState, useCallback, useMemo, useEffect } from 'react';
 
 interface Question {
@@ -11,26 +11,50 @@ interface Question {
   is_active: boolean;
 }
 
-// セクション構造の定義（統合データローダーの標準化に合わせて修正）
+// 回答データの型（question_idをキーとする）
+type AnswersData = Record<string, number>;
+
+// セクション構造の定義（役割による違いを考慮）
 interface SectionStructure {
   [category: string]: string[];
 }
 
-const SECTION_STRUCTURE: SectionStructure = {
-  sportsmanship: ['courage', 'resilience', 'cooperation', 'natural_acceptance', 'non_rationality'],
-  athlete_mind: [
-    'commitment',     // こだわり（旧: detail_oriented）
-    'result',         // 結果（旧: results_oriented）
-    'steadiness',     // 堅実（旧: steady）
-    'devotion',       // 献身（旧: devoted）
-    'self_control',   // 克己（変更なし）
-    'assertion',      // 主張（旧: assertive）
-    'sensitivity',    // 繊細（旧: sensitive）
-    'intuition',      // 直感（旧: intuitive）
-    'introspection',  // 内省（旧: introspective）
-    'comparison'      // 比較（旧: comparative）
+// 基本のセクション構造（全役割共通）
+const BASE_SECTION_STRUCTURE: SectionStructure = {
+  sportsmanship: [
+    'courage',           // 勇気 (1-4)
+    'resilience',        // 復活力 (5-8)
+    'cooperation',       // 協調性 (9-12)
+    'natural_acceptance', // 自然体 (13-16)
+    'non_rationality'    // 非合理性 (17-20)
   ],
-  self_affirmation: ['self_efficacy', 'self_determination', 'self_acceptance', 'self_worth']
+  athlete_mind: [
+    'introspection',     // 内省 (21-24)
+    'self_control',      // 克己 (25-28)
+    'devotion',          // 献身 (29-32)
+    'intuition',         // 直感 (33-36)
+    'sensitivity',       // 繊細 (37-40)
+    'steadiness',        // 堅実 (41-44)
+    'comparison',        // 比較 (45-48)
+    'result',            // 結果 (49-52)
+    'assertion',         // 主張 (53-56)
+    'commitment'         // こだわり (57-60)
+  ],
+  self_esteem: [        // self_affirmation → self_esteem に修正
+    'self_determination', // 自己決定感 (61-74)
+    'self_acceptance',    // 自己受容感 (75-84)
+    'self_worth',         // 自己有用感 (85-94)
+    'self_efficacy'       // 自己効力感 (95-99)
+  ]
+};
+
+// 役割による質問番号の範囲（実際のデータに基づいて調整が必要）
+const ROLE_QUESTION_RANGES = {
+  player: { start: 1, end: 99 },
+  coach: { start: 1, end: 99 },
+  father: { start: 1, end: 99 },
+  mother: { start: 1, end: 99 },
+  adult: { start: 1, end: 99 }
 };
 
 interface SectionInfo {
@@ -67,40 +91,55 @@ interface OverallProgress {
 }
 
 export const useSectionProgress = (questions: Question[]) => {
-  const [answers, setAnswers] = useState<Record<number, number>>({});
+  const [answers, setAnswers] = useState<AnswersData>({});
   const [currentCategoryIndex, setCurrentCategoryIndex] = useState<number>(0);
   const [currentSectionIndex, setCurrentSectionIndex] = useState<number>(0);
 
-  // カテゴリの順序を定義
-  const categoryOrder = useMemo(() => ['sportsmanship', 'athlete_mind', 'self_affirmation'], []);
+  // カテゴリの順序を定義（self_affirmation → self_esteem に修正）
+  const categoryOrder = useMemo(() => ['sportsmanship', 'athlete_mind', 'self_esteem'], []);
 
-  // セクション情報の取得（日本語ラベルも統一）
+  // 現在のユーザーの役割を質問から推測
+  const userRole = useMemo(() => {
+    if (questions.length > 0) {
+      return questions[0].target;
+    }
+    return 'player'; // デフォルト
+  }, [questions]);
+
+  // 役割に応じたセクション構造を取得
+  const getSectionStructureForRole = useCallback((role: string): SectionStructure => {
+    // 現時点では全役割で同じ構造を使用
+    // 必要に応じてここで役割ごとの違いを実装
+    return BASE_SECTION_STRUCTURE;
+  }, []);
+
+  // セクション情報の取得（日本語ラベル）
   const getSectionInfo = useCallback((category: string, section: string): { title: string; description: string } => {
     const sectionLabels: Record<string, { title: string; description: string }> = {
       // スポーツマンシップ
       'courage': { title: '勇気', description: '困難な状況でも挑戦し続ける力' },
-      'resilience': { title: '打たれ強さ', description: '挫折から立ち直る力' },
+      'resilience': { title: '復活力', description: '挫折から立ち直る力' },
       'cooperation': { title: '協調性', description: 'チームワークを重視する姿勢' },
       'natural_acceptance': { title: '自然体', description: 'ありのままの自分を受け入れる力' },
       'non_rationality': { title: '非合理性', description: '直感や感性を大切にする力' },
       
-      // アスリートマインド（統一されたラベル）
-      'commitment': { title: 'こだわり', description: '細かい部分まで注意を払い完璧を目指す力' },
-      'result': { title: '結果', description: '成果を重視して取り組む力' },
-      'steadiness': { title: '堅実', description: '一歩一歩確実に前進する力' },
-      'devotion': { title: '献身', description: 'チームや目標のために尽くす力' },
-      'self_control': { title: '克己', description: '自分をコントロールする力' },
-      'assertion': { title: '主張', description: '自分の意見を適切に表現する力' },
-      'sensitivity': { title: '繊細', description: '周囲の変化や感情を察知する力' },
-      'intuition': { title: '直感', description: '直感で判断し行動する力' },
+      // アスリートマインド
       'introspection': { title: '内省', description: '自分自身を深く見つめる力' },
+      'self_control': { title: '克己', description: '自分をコントロールする力' },
+      'devotion': { title: '献身', description: 'チームや目標のために尽くす力' },
+      'intuition': { title: '直感', description: '直感で判断し行動する力' },
+      'sensitivity': { title: '繊細', description: '周囲の変化や感情を察知する力' },
+      'steadiness': { title: '堅実', description: '一歩一歩確実に前進する力' },
       'comparison': { title: '比較', description: '他者と比較して自分を向上させる力' },
+      'result': { title: '結果', description: '成果を重視して取り組む力' },
+      'assertion': { title: '主張', description: '自分の意見を適切に表現する力' },
+      'commitment': { title: 'こだわり', description: '細かい部分まで注意を払い完璧を目指す力' },
       
       // 自己肯定感
-      'self_efficacy': { title: '自己効力感', description: '自分ならできるという確信' },
       'self_determination': { title: '自己決定感', description: '自分で選択・決定する力' },
       'self_acceptance': { title: '自己受容感', description: 'ありのままの自分を受け入れる力' },
-      'self_worth': { title: '自己有用感', description: '自分の存在価値を感じる力' }
+      'self_worth': { title: '自己有用感', description: '自分の存在価値を感じる力' },
+      'self_efficacy': { title: '自己効力感', description: '自分ならできるという確信' }
     };
     return sectionLabels[section] || { title: section, description: '' };
   }, []);
@@ -116,7 +155,7 @@ export const useSectionProgress = (questions: Question[]) => {
         title: 'アスリートマインド',
         description: 'アスリートとしての精神的な特性を評価します'
       },
-      self_affirmation: {
+      self_esteem: {  // self_affirmation → self_esteem に修正
         title: '自己肯定感',
         description: '自分自身に対する肯定的な感情を測定します'
       }
@@ -124,64 +163,83 @@ export const useSectionProgress = (questions: Question[]) => {
     return categoryInfo[category] || { title: category, description: '' };
   }, []);
 
-  // 回答を設定する関数
-  const setAnswer = useCallback((questionNumber: number, value: number) => {
+  // 回答を設定する関数（question_idをキーとして使用）
+  const setAnswer = useCallback((questionId: string, value: number) => {
+    console.log('回答設定:', { questionId, value });
     setAnswers(prev => ({
       ...prev,
-      [questionNumber]: value
+      [questionId]: value
     }));
   }, []);
+
+  // ローカルストレージから保存された進捗を読み込む
+  useEffect(() => {
+    if (userRole && questions.length > 0) {
+      const savedProgress = localStorage.getItem(`test_progress_${userRole}`);
+      if (savedProgress) {
+        try {
+          const parsedProgress = JSON.parse(savedProgress);
+          console.log('保存された進捗を読み込み:', {
+            userRole,
+            savedAnswersCount: Object.keys(parsedProgress).length
+          });
+          setAnswers(parsedProgress);
+        } catch (error) {
+          console.error('進捗の読み込みエラー:', error);
+        }
+      }
+    }
+  }, [userRole, questions.length]);
 
   // セクション別の進捗データを計算
   const progressData = useMemo(() => {
     console.log('useSectionProgress: 進捗データ計算開始', {
+      userRole,
       questionsCount: questions.length,
       answersCount: Object.keys(answers).length,
       categoryOrder,
+      sampleAnswers: Object.entries(answers).slice(0, 5),
       sampleQuestions: questions.slice(0, 5).map(q => ({
+        question_id: q.question_id,
         question_number: q.question_number,
         category: q.category,
         subcategory: q.subcategory,
-        question_text: q.question_text.substring(0, 30) + '...'
+        target: q.target
       }))
     });
 
     const allSections: SectionInfo[] = [];
     const categoryInfos: CategoryInfo[] = [];
+    const sectionStructure = getSectionStructureForRole(userRole);
 
     // カテゴリごとに処理
     categoryOrder.forEach((category, categoryIndex) => {
       const categoryQuestions = questions.filter(q => q.category === category);
-      const sections = SECTION_STRUCTURE[category] || [];
+      const sections = sectionStructure[category] || [];
       const categoryInfo = getCategoryInfo(category);
-      
-      console.log(`カテゴリ処理: ${category}`, {
-        categoryIndex,
-        categoryQuestionsCount: categoryQuestions.length,
-        sections,
-        sampleCategoryQuestions: categoryQuestions.slice(0, 3).map(q => ({
-          question_number: q.question_number,
-          subcategory: q.subcategory,
-          question_text: q.question_text.substring(0, 30) + '...'
-        }))
-      });
       
       let categoryAnsweredQuestions = 0;
       let categoryCompletedSections = 0;
 
       // セクションごとに処理
       sections.forEach((section, sectionIndex) => {
-        const sectionQuestions = categoryQuestions.filter(q => q.subcategory === section);
+        const sectionQuestions = categoryQuestions
+          .filter(q => q.subcategory === section)
+          .sort((a, b) => a.question_number - b.question_number);
+        
+        // question_idで回答をチェック
         const answeredQuestions = sectionQuestions.filter(q => 
-          answers[q.question_number] !== undefined
+          answers[q.question_id] !== undefined && answers[q.question_id] !== null
         ).length;
         
         const completionPercentage = sectionQuestions.length > 0 
           ? (answeredQuestions / sectionQuestions.length) * 100 
           : 0;
-        const isCompleted = answeredQuestions === sectionQuestions.length;
+        const isCompleted = sectionQuestions.length > 0 && answeredQuestions === sectionQuestions.length;
         
-        if (isCompleted) categoryCompletedSections++;
+        if (isCompleted && sectionQuestions.length > 0) {
+          categoryCompletedSections++;
+        }
         categoryAnsweredQuestions += answeredQuestions;
 
         const sectionInfo = getSectionInfo(category, section);
@@ -190,13 +248,8 @@ export const useSectionProgress = (questions: Question[]) => {
           sectionIndex,
           sectionQuestionsCount: sectionQuestions.length,
           answeredQuestions,
-          completionPercentage,
           isCompleted,
-          sectionInfo,
-          sampleSectionQuestions: sectionQuestions.slice(0, 2).map(q => ({
-            question_number: q.question_number,
-            question_text: q.question_text.substring(0, 30) + '...'
-          }))
+          questionNumbers: sectionQuestions.map(q => q.question_number)
         });
         
         allSections.push({
@@ -221,34 +274,65 @@ export const useSectionProgress = (questions: Question[]) => {
         completedSections: categoryCompletedSections,
         totalQuestions: categoryQuestions.length,
         answeredQuestions: categoryAnsweredQuestions,
-        isCompleted: categoryCompletedSections === sections.length
+        isCompleted: categoryCompletedSections === sections.length && sections.length > 0
       });
     });
 
+    // 有効なセクションのみをフィルタリング（質問がないセクションを除外）
+    const validSections = allSections.filter(s => s.totalQuestions > 0);
+
     // 全体の進捗を計算
-    const totalSections = allSections.length;
-    const completedSections = allSections.filter(s => s.isCompleted).length;
+    const totalSections = validSections.length;
+    const completedSections = validSections.filter(s => s.isCompleted).length;
     const totalQuestions = questions.length;
-    const answeredQuestions = Object.keys(answers).length;
-    const completionPercentage = totalQuestions > 0 ? (answeredQuestions / totalQuestions) * 100 : 0;
+    const totalAnsweredQuestions = questions.filter(q => 
+      answers[q.question_id] !== undefined && answers[q.question_id] !== null
+    ).length;
+    const completionPercentage = totalQuestions > 0 ? (totalAnsweredQuestions / totalQuestions) * 100 : 0;
 
     const overallProgress: OverallProgress = {
       totalSections,
       completedSections,
       totalQuestions,
-      answeredQuestions,
+      answeredQuestions: totalAnsweredQuestions,
       completionPercentage,
-      isCompleted: completedSections === totalSections
+      isCompleted: totalQuestions > 0 && totalAnsweredQuestions === totalQuestions
     };
 
-    return { allSections, categoryInfos, overallProgress };
-  }, [questions, answers, categoryOrder, getCategoryInfo, getSectionInfo]);
+    console.log('進捗データ計算完了:', {
+      userRole,
+      overallProgress,
+      categoryInfos,
+      totalSections: validSections.length,
+      sectionDetails: validSections.map(s => ({
+        title: s.title,
+        answered: s.answeredQuestions,
+        total: s.totalQuestions,
+        isCompleted: s.isCompleted
+      }))
+    });
+
+    return { 
+      allSections: validSections, 
+      categoryInfos, 
+      overallProgress 
+    };
+  }, [questions, answers, categoryOrder, getCategoryInfo, getSectionInfo, userRole, getSectionStructureForRole]);
 
   // 現在のセクション情報
   const currentSection = useMemo(() => {
-    return progressData.allSections.find(
+    const section = progressData.allSections.find(
       s => s.categoryIndex === currentCategoryIndex && s.sectionIndex === currentSectionIndex
-    ) || progressData.allSections[0];
+    );
+    
+    // 見つからない場合は最初の有効なセクションを返す
+    if (!section && progressData.allSections.length > 0) {
+      setCurrentCategoryIndex(progressData.allSections[0].categoryIndex);
+      setCurrentSectionIndex(progressData.allSections[0].sectionIndex);
+      return progressData.allSections[0];
+    }
+    
+    return section;
   }, [progressData.allSections, currentCategoryIndex, currentSectionIndex]);
 
   // 現在のカテゴリ情報
@@ -267,7 +351,6 @@ export const useSectionProgress = (questions: Question[]) => {
       const nextSection = allSections[currentIndex + 1];
       setCurrentCategoryIndex(nextSection.categoryIndex);
       setCurrentSectionIndex(nextSection.sectionIndex);
-      // ページトップにスクロール
       window.scrollTo(0, 0);
     }
   }, [progressData.allSections, currentCategoryIndex, currentSectionIndex]);
@@ -282,7 +365,6 @@ export const useSectionProgress = (questions: Question[]) => {
       const previousSection = allSections[currentIndex - 1];
       setCurrentCategoryIndex(previousSection.categoryIndex);
       setCurrentSectionIndex(previousSection.sectionIndex);
-      // ページトップにスクロール
       window.scrollTo(0, 0);
     }
   }, [progressData.allSections, currentCategoryIndex, currentSectionIndex]);
@@ -290,7 +372,6 @@ export const useSectionProgress = (questions: Question[]) => {
   const moveToSection = useCallback((categoryIndex: number, sectionIndex: number) => {
     setCurrentCategoryIndex(categoryIndex);
     setCurrentSectionIndex(sectionIndex);
-    // ページトップにスクロール
     window.scrollTo(0, 0);
   }, []);
 
@@ -311,19 +392,17 @@ export const useSectionProgress = (questions: Question[]) => {
     return currentIndex > 0;
   }, [progressData.allSections, currentCategoryIndex, currentSectionIndex]);
 
-  // セクション完了時の自動進行
+  // セクション完了時の自動進行（オプション）
   useEffect(() => {
     if (currentSection?.isCompleted && canMoveToNextSection) {
-      // セクション完了から少し遅れて自動進行
       const timer = setTimeout(() => {
-        // ユーザーがまだ同じセクションにいる場合のみ進行
         const stillOnSameSection = progressData.allSections.find(
           s => s.categoryIndex === currentCategoryIndex && s.sectionIndex === currentSectionIndex
         );
         if (stillOnSameSection?.isCompleted) {
           moveToNextSection();
         }
-      }, 1500); // 1.5秒後に自動進行
+      }, 1500);
 
       return () => clearTimeout(timer);
     }
