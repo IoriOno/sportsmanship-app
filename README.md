@@ -85,4 +85,4 @@ npm test
 
 ## ライセンス
 
-Copyright (c) 2024 Sportsmanship App. All rights reserved.
+Copyright (c) 2024 Sportsmanship App. All rights reserved.// trigger redeploy
