@@ -48,3 +48,6 @@ frontend_admin/build/
 __pycache__/
 .DS_Store
 *.pyc
+
+# Local Netlify folder
+.netlify
