@@ -22,39 +22,30 @@ interface SectionStructure {
 // 基本のセクション構造（全役割共通）
 const BASE_SECTION_STRUCTURE: SectionStructure = {
   sportsmanship: [
-    'courage',           // 勇気 (1-4)
-    'resilience',        // 復活力 (5-8)
-    'cooperation',       // 協調性 (9-12)
-    'natural_acceptance', // 自然体 (13-16)
-    'non_rationality'    // 非合理性 (17-20)
+    'courage',           // 勇気
+    'resilience',        // 復活力
+    'cooperation',       // 協調性
+    'natural_acceptance', // 自然体
+    'non_rationality'    // 非合理性
   ],
   athlete_mind: [
-    'introspection',     // 内省 (21-24)
-    'self_control',      // 克己 (25-28)
-    'devotion',          // 献身 (29-32)
-    'intuition',         // 直感 (33-36)
-    'sensitivity',       // 繊細 (37-40)
-    'steadiness',        // 堅実 (41-44)
-    'comparison',        // 比較 (45-48)
-    'result',            // 結果 (49-52)
-    'assertion',         // 主張 (53-56)
-    'commitment'         // こだわり (57-60)
+    'introspection',     // 内省
+    'self_control',      // 克己
+    'devotion',          // 献身
+    'intuition',         // 直感
+    'sensitivity',       // 繊細
+    'steadiness',        // 堅実
+    'comparison',        // 比較
+    'result',            // 結果
+    'assertion',         // 主張
+    'commitment'         // こだわり
   ],
   self_esteem: [        // self_affirmation → self_esteem に修正
-    'self_determination', // 自己決定感 (61-74)
-    'self_acceptance',    // 自己受容感 (75-84)
-    'self_worth',         // 自己有用感 (85-94)
-    'self_efficacy'       // 自己効力感 (95-99)
+    'self_determination', // 自己決定感
+    'self_acceptance',    // 自己受容感
+    'self_worth',         // 自己有用感
+    'self_efficacy'       // 自己効力感
   ]
-};
-
-// 役割による質問番号の範囲（実際のデータに基づいて調整が必要）
-const ROLE_QUESTION_RANGES = {
-  player: { start: 1, end: 99 },
-  coach: { start: 1, end: 99 },
-  father: { start: 1, end: 99 },
-  mother: { start: 1, end: 99 },
-  adult: { start: 1, end: 99 }
 };
 
 interface SectionInfo {
@@ -101,7 +92,9 @@ export const useSectionProgress = (questions: Question[]) => {
   // 現在のユーザーの役割を質問から推測
   const userRole = useMemo(() => {
     if (questions.length > 0) {
-      return questions[0].target;
+      // スポーツマンシップ以外の質問からtargetを取得
+      const nonSportsmanshipQuestion = questions.find(q => q.category !== 'sportsmanship');
+      return nonSportsmanshipQuestion?.target || questions[0].target;
     }
     return 'player'; // デフォルト
   }, [questions]);
@@ -197,15 +190,7 @@ export const useSectionProgress = (questions: Question[]) => {
       userRole,
       questionsCount: questions.length,
       answersCount: Object.keys(answers).length,
-      categoryOrder,
-      sampleAnswers: Object.entries(answers).slice(0, 5),
-      sampleQuestions: questions.slice(0, 5).map(q => ({
-        question_id: q.question_id,
-        question_number: q.question_number,
-        category: q.category,
-        subcategory: q.subcategory,
-        target: q.target
-      }))
+      categoryOrder
     });
 
     const allSections: SectionInfo[] = [];
@@ -214,7 +199,29 @@ export const useSectionProgress = (questions: Question[]) => {
 
     // カテゴリごとに処理
     categoryOrder.forEach((category, categoryIndex) => {
-      const categoryQuestions = questions.filter(q => q.category === category);
+      // カテゴリに属する質問をフィルタリング
+      // スポーツマンシップは全対象（target='all'）、それ以外は現在のユーザーのroleに一致するもののみ
+      const categoryQuestions = questions.filter(q => {
+        if (q.category === category) {
+          if (category === 'sportsmanship') {
+            return true; // スポーツマンシップは全員共通
+          } else {
+            // アスリートマインドと自己肯定感は役割別
+            return q.target === userRole;
+          }
+        }
+        return false;
+      });
+
+      console.log(`カテゴリ ${category} の質問数:`, categoryQuestions.length, {
+        userRole,
+        sampleQuestions: categoryQuestions.slice(0, 3).map(q => ({
+          question_number: q.question_number,
+          target: q.target,
+          subcategory: q.subcategory
+        }))
+      });
+
       const sections = sectionStructure[category] || [];
       const categoryInfo = getCategoryInfo(category);
       
@@ -281,11 +288,15 @@ export const useSectionProgress = (questions: Question[]) => {
     // 有効なセクションのみをフィルタリング（質問がないセクションを除外）
     const validSections = allSections.filter(s => s.totalQuestions > 0);
 
-    // 全体の進捗を計算
+    // 全体の進捗を計算（現在のユーザーに関連する質問のみ）
+    const userQuestions = questions.filter(q => 
+      q.category === 'sportsmanship' || q.target === userRole
+    );
+    
     const totalSections = validSections.length;
     const completedSections = validSections.filter(s => s.isCompleted).length;
-    const totalQuestions = questions.length;
-    const totalAnsweredQuestions = questions.filter(q => 
+    const totalQuestions = userQuestions.length;
+    const totalAnsweredQuestions = userQuestions.filter(q => 
       answers[q.question_id] !== undefined && answers[q.question_id] !== null
     ).length;
     const completionPercentage = totalQuestions > 0 ? (totalAnsweredQuestions / totalQuestions) * 100 : 0;
