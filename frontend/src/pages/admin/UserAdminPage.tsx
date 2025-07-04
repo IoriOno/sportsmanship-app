@@ -1,5 +1,3 @@
-// ファイル: frontend/src/pages/admin/UserAdminPage.tsx
-
 import React, { useState, useEffect } from 'react';
 import AdminHeader from '../../components/admin/AdminHeader';
 
@@ -22,6 +20,13 @@ interface UserStatistics {
   club_statistics: Array<{ club_id: string; user_count: number; }>;
 }
 
+interface Club {
+  club_id: string;
+  club_name: string;
+  created_date: string;
+  user_count?: number;
+}
+
 // 役割の定義
 const ROLES = {
   'player': '選手',
@@ -34,17 +39,20 @@ const ROLES = {
 const UserAdminPage = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [statistics, setStatistics] = useState<UserStatistics | null>(null);
+  const [clubs, setClubs] = useState<Club[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterRole, setFilterRole] = useState('');
   const [filterClub, setFilterClub] = useState('');
   const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [originalUser, setOriginalUser] = useState<User | null>(null);
 
   // ユーザー一覧を取得
   const fetchUsers = async () => {
     try {
       setLoading(true);
+      const token = localStorage.getItem('admin_token');
       let url = `${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/api/v1/admin/users`;
       
       const params = new URLSearchParams();
@@ -56,7 +64,11 @@ const UserAdminPage = () => {
         url += `?${params.toString()}`;
       }
       
-      const response = await fetch(url);
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': token ? `Bearer ${token}` : '',
+        },
+      });
       const data = await response.json();
       
       if (response.ok) {
@@ -75,7 +87,12 @@ const UserAdminPage = () => {
   // 統計情報を取得
   const fetchStatistics = async () => {
     try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/api/v1/admin/users/statistics/summary`);
+      const token = localStorage.getItem('admin_token');
+      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/api/v1/admin/users/statistics/summary`, {
+        headers: {
+          'Authorization': token ? `Bearer ${token}` : '',
+        },
+      });
       const data = await response.json();
       
       if (response.ok) {
@@ -86,35 +103,92 @@ const UserAdminPage = () => {
     }
   };
 
+  // 全クラブ情報を取得
+  const fetchClubs = async () => {
+    try {
+      const token = localStorage.getItem('admin_token');
+      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/api/v1/admin/clubs`, {
+        headers: {
+          'Authorization': token ? `Bearer ${token}` : '',
+        },
+      });
+      const data = await response.json();
+      
+      if (response.ok) {
+        setClubs(data);
+      }
+    } catch (err) {
+      console.error('クラブ情報の取得に失敗:', err);
+    }
+  };
+
   useEffect(() => {
     fetchUsers();
     fetchStatistics();
+    fetchClubs();
   }, [searchTerm, filterRole, filterClub]);
 
-  // ユーザーの役割を更新
-  const handleUpdateRole = async (userId: string, newRole: string) => {
+  // ユーザー情報を保存（役割とクラブIDの両方を更新）
+  const handleSaveUser = async (user: User) => {
     try {
       const token = localStorage.getItem('admin_token');
-      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/api/v1/admin/users/${userId}/role`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': token ? `Bearer ${token}` : '',
-        },
-        body: JSON.stringify({ new_role: newRole }),
-      });
+      let updateCount = 0;
+      let errorOccurred = false;
+      
+      // 役割の更新
+      if (originalUser && user.role !== originalUser.role) {
+        const roleResponse = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/api/v1/admin/users/${user.user_id}/role`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': token ? `Bearer ${token}` : '',
+          },
+          body: JSON.stringify({ new_role: user.role }),
+        });
 
-      if (response.ok) {
+        if (roleResponse.ok) {
+          updateCount++;
+        } else {
+          errorOccurred = true;
+          const errorData = await roleResponse.json();
+          alert(`役割の更新エラー: ${errorData.detail || '更新に失敗しました'}`);
+        }
+      }
+      
+      // クラブIDの更新
+      if (originalUser && user.club_id !== originalUser.club_id) {
+        const clubResponse = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/api/v1/admin/users/${user.user_id}/club`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': token ? `Bearer ${token}` : '',
+          },
+          body: JSON.stringify({ new_club_id: user.club_id }),
+        });
+
+        if (clubResponse.ok) {
+          updateCount++;
+        } else {
+          errorOccurred = true;
+          const errorData = await clubResponse.json().catch(() => ({ detail: 'クラブIDの更新に失敗しました' }));
+          alert(`クラブIDの更新エラー: ${errorData.detail || '更新に失敗しました'}`);
+        }
+      }
+      
+      if (!errorOccurred) {
         setEditingUser(null);
+        setOriginalUser(null);
         fetchUsers();
         fetchStatistics();
-        alert('ユーザーの役割が更新されました');
-      } else {
-        const errorData = await response.json();
-        alert(`エラー: ${errorData.detail || '役割の更新に失敗しました'}`);
+        if (updateCount > 0) {
+          alert('ユーザー情報が更新されました');
+        } else {
+          alert('変更はありませんでした');
+        }
       }
     } catch (err) {
-      alert('役割の更新に失敗しました');
+      console.error('更新エラー:', err);
+      alert('更新に失敗しました');
     }
   };
 
@@ -203,6 +277,18 @@ const UserAdminPage = () => {
     }
   };
 
+  // 編集開始時に元のユーザー情報を保存
+  const handleStartEdit = (user: User) => {
+    setEditingUser({...user});
+    setOriginalUser({...user});
+  };
+
+  // 編集キャンセル
+  const handleCancelEdit = () => {
+    setEditingUser(null);
+    setOriginalUser(null);
+  };
+
   if (loading) {
     return (
       <>
@@ -232,13 +318,13 @@ const UserAdminPage = () => {
                 <div className="text-sm font-medium text-gray-500">役割別ユーザー</div>
                 <div className="text-sm text-gray-600">
                   {Object.entries(statistics.role_statistics).map(([role, count]) => (
-                    <div key={role}>{ROLES[role as keyof typeof ROLES]}: {count}人</div>
+                    <div key={role}>{ROLES[role as keyof typeof ROLES] || role}: {count}人</div>
                   ))}
                 </div>
               </div>
               <div className="bg-white rounded-lg shadow p-4">
                 <div className="text-sm font-medium text-gray-500">クラブ数</div>
-                <div className="text-2xl font-bold text-blue-600">{statistics.club_statistics?.length || 0}</div>
+                <div className="text-2xl font-bold text-blue-600">{clubs.length || 0}</div>
               </div>
             </div>
           )}
@@ -283,9 +369,9 @@ const UserAdminPage = () => {
                   className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-primary-500"
                 >
                   <option value="">すべてのクラブ</option>
-                  {statistics?.club_statistics?.map((club) => (
+                  {clubs.map((club) => (
                     <option key={club.club_id} value={club.club_id}>
-                      {club.club_id} ({club.user_count}人)
+                      {club.club_name} ({club.club_id}) - {club.user_count || 0}人
                     </option>
                   ))}
                 </select>
@@ -314,7 +400,7 @@ const UserAdminPage = () => {
                           役割
                         </label>
                         <select
-                          value={editingUser.role}
+                          value={editingUser.role || ''}
                           onChange={(e) => setEditingUser({...editingUser, role: e.target.value})}
                           className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-primary-500"
                         >
@@ -323,16 +409,43 @@ const UserAdminPage = () => {
                           ))}
                         </select>
                       </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          クラブID
+                        </label>
+                        <select
+                          value={editingUser.club_id || ''}
+                          onChange={(e) => setEditingUser({...editingUser, club_id: e.target.value})}
+                          className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-primary-500"
+                        >
+                          {clubs.length > 0 ? (
+                            clubs.map((club) => (
+                              <option key={club.club_id} value={club.club_id}>
+                                {club.club_name} ({club.club_id})
+                                {club.user_count === 0 && ' - 登録者なし'}
+                              </option>
+                            ))
+                          ) : (
+                            <option value={editingUser.club_id}>{editingUser.club_id}</option>
+                          )}
+                        </select>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-4">
+                      <div className="flex-1">
+                        <p className="text-sm text-gray-600">名前: {editingUser.name}</p>
+                        <p className="text-sm text-gray-600">メール: {editingUser.email}</p>
+                      </div>
                     </div>
                     <div className="flex space-x-2">
                       <button 
-                        onClick={() => handleUpdateRole(editingUser.user_id, editingUser.role)}
+                        onClick={() => handleSaveUser(editingUser)}
                         className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded"
                       >
                         保存
                       </button>
                       <button 
-                        onClick={() => setEditingUser(null)}
+                        onClick={handleCancelEdit}
                         className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded"
                       >
                         キャンセル
@@ -357,7 +470,7 @@ const UserAdminPage = () => {
                               {user.name}
                             </p>
                             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                              {ROLES[user.role as keyof typeof ROLES]}
+                              {ROLES[user.role as keyof typeof ROLES] || user.role}
                             </span>
                             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
                               {user.club_id}
@@ -382,7 +495,7 @@ const UserAdminPage = () => {
                     </div>
                     <div className="ml-4 flex space-x-2">
                       <button
-                        onClick={() => setEditingUser(user)}
+                        onClick={() => handleStartEdit(user)}
                         className="bg-gray-500 hover:bg-gray-600 text-white px-3 py-1 rounded text-sm"
                       >
                         編集

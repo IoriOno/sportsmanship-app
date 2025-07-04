@@ -48,8 +48,13 @@ class AdminCreateRequest(BaseModel):
     email: str
     password: str
 
+
 class HeadCoachToggleRequest(BaseModel):
     is_head_coach: bool
+
+
+class UpdateUserClubRequest(BaseModel):
+    new_club_id: str
 
 
 def load_admin_users() -> Dict[str, dict]:
@@ -514,3 +519,41 @@ def update_user_role(
     db.commit()
     
     return {"message": "User role updated successfully", "new_role": user.role}
+
+
+@router.put("/users/{user_id}/club")
+def update_user_club(
+    user_id: UUID,
+    request: UpdateUserClubRequest,
+    db: Session = Depends(get_db),
+    admin_data = Depends(get_current_admin)
+):
+    """ユーザーのクラブIDを更新"""
+    # ユーザーの存在確認
+    user = db.query(User).filter(User.user_id == user_id).first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+    
+    # 新しいクラブの存在確認
+    new_club = db.query(Club).filter(Club.club_id == request.new_club_id).first()
+    if not new_club:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Club not found"
+        )
+    
+    # クラブIDを更新
+    old_club_id = user.club_id
+    user.club_id = request.new_club_id
+    db.commit()
+    db.refresh(user)
+    
+    return {
+        "message": "User club updated successfully",
+        "user_id": str(user.user_id),
+        "old_club_id": old_club_id,
+        "new_club_id": user.club_id
+    }
