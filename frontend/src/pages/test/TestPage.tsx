@@ -26,35 +26,6 @@ interface Question {
   is_active: boolean;
 }
 
-// 質問番号とカテゴリー・サブカテゴリーの正確なマッピング
-const QUESTION_MAPPING = {
-  sportsmanship: {
-    courage: { start: 1, end: 4 },           // 1-4
-    resilience: { start: 5, end: 8 },        // 5-8
-    cooperation: { start: 9, end: 12 },      // 9-12
-    natural_acceptance: { start: 13, end: 16 }, // 13-16
-    non_rationality: { start: 17, end: 20 }  // 17-20
-  },
-  athlete_mind: {
-    introspection: { start: 21, end: 24 },   // 21-24
-    self_control: { start: 25, end: 28 },    // 25-28
-    devotion: { start: 29, end: 32 },        // 29-32
-    intuition: { start: 33, end: 36 },       // 33-36
-    sensitivity: { start: 37, end: 40 },     // 37-40
-    steadiness: { start: 41, end: 44 },      // 41-44
-    comparison: { start: 45, end: 48 },      // 45-48
-    result: { start: 49, end: 52 },          // 49-52
-    assertion: { start: 53, end: 56 },       // 53-56
-    commitment: { start: 57, end: 60 }       // 57-60
-  },
-  self_esteem: {
-    self_determination: { start: 61, end: 74 }, // 61-74 (14問)
-    self_acceptance: { start: 75, end: 84 },   // 75-84 (10問)
-    self_worth: { start: 85, end: 94 },        // 85-94 (10問)
-    self_efficacy: { start: 95, end: 99 }      // 95-99 (5問)
-  }
-};
-
 const TestPage = () => {
   const navigate = useNavigate();
   const { login } = useAuthStore();
@@ -111,39 +82,6 @@ const TestPage = () => {
   const isValidUUID = (uuid: string): boolean => {
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
     return uuidRegex.test(uuid);
-  };
-
-  // 質問番号からカテゴリーとサブカテゴリーを取得する関数
-  const getQuestionCategoryInfo = (questionNumber: number): { category: string; subcategory: string } => {
-    // スポーツマンシップ (1-20)
-    if (questionNumber >= 1 && questionNumber <= 20) {
-      for (const [subcategory, range] of Object.entries(QUESTION_MAPPING.sportsmanship)) {
-        if (questionNumber >= range.start && questionNumber <= range.end) {
-          return { category: 'sportsmanship', subcategory };
-        }
-      }
-    }
-    
-    // アスリートマインド (21-60)
-    if (questionNumber >= 21 && questionNumber <= 60) {
-      for (const [subcategory, range] of Object.entries(QUESTION_MAPPING.athlete_mind)) {
-        if (questionNumber >= range.start && questionNumber <= range.end) {
-          return { category: 'athlete_mind', subcategory };
-        }
-      }
-    }
-    
-    // 自己肯定感 (61-99)
-    if (questionNumber >= 61 && questionNumber <= 99) {
-      for (const [subcategory, range] of Object.entries(QUESTION_MAPPING.self_esteem)) {
-        if (questionNumber >= range.start && questionNumber <= range.end) {
-          return { category: 'self_esteem', subcategory };
-        }
-      }
-    }
-    
-    // デフォルト値（エラー防止）
-    return { category: 'sportsmanship', subcategory: 'courage' };
   };
 
   // サンプルユーザーを作成する関数
@@ -210,27 +148,6 @@ const TestPage = () => {
     initUser();
   }, [createSampleUser]);
 
-  // サンプル質問データ生成関数（修正版）
-  const generateSampleQuestions = (role: string): Question[] => {
-    const questions: Question[] = [];
-    
-    for (let i = 1; i <= 99; i++) {
-      const { category, subcategory } = getQuestionCategoryInfo(i);
-      
-      questions.push({
-        question_id: uuidv4(),
-        question_number: i,
-        question_text: `質問${i}: ${category}/${subcategory}に関する質問です。`,
-        category: category,
-        subcategory: subcategory,
-        target: role,
-        is_active: true
-      });
-    }
-    
-    return questions;
-  };
-
   // 質問データの取得
   useEffect(() => {
     const loadQuestions = async () => {
@@ -253,31 +170,17 @@ const TestPage = () => {
 
         if (response.ok && data.questions) {
           console.log('質問データ取得成功:', {
-            questionsCount: data.questions.length
+            questionsCount: data.questions.length,
+            sampleQuestions: data.questions.slice(0, 5).map((q: Question) => ({
+              question_number: q.question_number,
+              category: q.category,
+              subcategory: q.subcategory,
+              target: q.target
+            }))
           });
           
-          // 質問データのカテゴリー・サブカテゴリーを検証・修正
-          const validatedQuestions = data.questions.map((q: Question) => {
-            const { category, subcategory } = getQuestionCategoryInfo(q.question_number);
-            
-            // カテゴリーが不正な場合は修正
-            if (q.category !== category || q.subcategory !== subcategory) {
-              console.warn(`質問${q.question_number}のカテゴリーを修正:`, {
-                old: { category: q.category, subcategory: q.subcategory },
-                new: { category, subcategory }
-              });
-              
-              return {
-                ...q,
-                category,
-                subcategory
-              };
-            }
-            
-            return q;
-          });
-          
-          setQuestions(validatedQuestions);
+          // バックエンドから正しいデータが来ているはずなので、そのまま使用
+          setQuestions(data.questions);
           setError(null);
           setIsDataReady(true);
         } else {
@@ -287,10 +190,9 @@ const TestPage = () => {
         console.error('❌ Backend API質問データ取得エラー:', err);
         setError(`質問の取得に失敗しました: ${err.message}`);
         
-        // フォールバックデータの生成
-        const sampleQuestions = generateSampleQuestions(user.role);
-        setQuestions(sampleQuestions);
-        setIsDataReady(true);
+        // エラー時はフォールバックデータを使用しない（データの整合性を保つため）
+        setQuestions([]);
+        setIsDataReady(false);
       } finally {
         setLoading(false);
       }

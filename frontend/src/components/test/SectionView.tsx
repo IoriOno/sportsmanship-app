@@ -39,7 +39,7 @@ const SectionView: React.FC<SectionViewProps> = ({
 }) => {
   return (
     <div className="space-y-6">
-      {/* セクションヘッダー */}
+      {/* セクションヘッダー（タイトルを非表示、進捗のみ表示） */}
       <div className="text-center mb-8">
         <div className="flex items-center justify-center mb-4">
           <div className={`w-16 h-16 rounded-full flex items-center justify-center ${
@@ -56,14 +56,6 @@ const SectionView: React.FC<SectionViewProps> = ({
             )}
           </div>
         </div>
-        
-        <h2 className="text-3xl font-bold text-gray-900 mb-2">
-          {section.title}
-        </h2>
-        
-        <p className="text-lg text-gray-600 mb-4">
-          {section.description}
-        </p>
 
         {/* セクション進捗バー */}
         <div className="max-w-md mx-auto">
@@ -110,7 +102,7 @@ const SectionView: React.FC<SectionViewProps> = ({
         <div className="bg-green-50 border border-green-200 rounded-lg p-6 text-center">
           <CheckCircleIcon className="w-12 h-12 text-green-500 mx-auto mb-4" />
           <h3 className="text-lg font-semibold text-green-800 mb-2">
-            「{section.title}」セクション完了！
+            セクション完了！
           </h3>
           <p className="text-green-700">
             {section.totalQuestions}問すべてに回答いただきました。
