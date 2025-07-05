@@ -55,50 +55,53 @@ class ComparisonService:
             if not latest_result:
                 # テスト結果がない場合はデフォルト値を使用
                 qualities = {
-                    'self_determination': 25,
-                    'self_acceptance': 25,
-                    'self_worth': 25,
-                    'self_efficacy': 25,
-                    'introspection': 25,
-                    'self_control': 25,
-                    'devotion': 25,
-                    'intuition': 25,
-                    'sensitivity': 25,
-                    'steadiness': 25,
-                    'comparison': 25,
-                    'result': 25,
-                    'assertion': 25,
-                    'commitment': 25,
-                    'courage': 25,
-                    'resilience': 25,
-                    'cooperation': 25,
-                    'natural_acceptance': 25,
-                    'non_rationality': 25
+                    # 自己肯定感
+                    '自己決定感': 25,
+                    '自己受容感': 25,
+                    '自己有用感': 25,
+                    '自己効力感': 25,
+                    # アスリートマインド
+                    '内省': 25,
+                    '克己': 25,
+                    '献身': 25,
+                    '直感': 25,
+                    '繊細': 25,
+                    '堅実': 25,
+                    '比較': 25,
+                    '結果': 25,
+                    '主張': 25,
+                    'こだわり': 25,
+                    # スポーツマンシップ
+                    '勇気': 25,
+                    '打たれ強さ': 25,
+                    '協調性': 25,
+                    '自然体': 25,
+                    '非合理性': 25
                 }
             else:
                 qualities = {
                     # 自己肯定感
-                    'self_determination': latest_result.self_determination,
-                    'self_acceptance': latest_result.self_acceptance,
-                    'self_worth': latest_result.self_worth,
-                    'self_efficacy': latest_result.self_efficacy,
+                    '自己決定感': latest_result.self_determination,
+                    '自己受容感': latest_result.self_acceptance,
+                    '自己有用感': latest_result.self_worth,
+                    '自己効力感': latest_result.self_efficacy,
                     # アスリートマインド
-                    'introspection': latest_result.introspection,
-                    'self_control': latest_result.self_control,
-                    'devotion': latest_result.devotion,
-                    'intuition': latest_result.intuition,
-                    'sensitivity': latest_result.sensitivity,
-                    'steadiness': latest_result.steadiness,
-                    'comparison': latest_result.comparison,
-                    'result': latest_result.result,
-                    'assertion': latest_result.assertion,
-                    'commitment': latest_result.commitment,
+                    '内省': latest_result.introspection,
+                    '克己': latest_result.self_control,
+                    '献身': latest_result.devotion,
+                    '直感': latest_result.intuition,
+                    '繊細': latest_result.sensitivity,
+                    '堅実': latest_result.steadiness,
+                    '比較': latest_result.comparison,
+                    '結果': latest_result.result,
+                    '主張': latest_result.assertion,
+                    'こだわり': latest_result.commitment,
                     # スポーツマンシップ
-                    'courage': latest_result.courage,
-                    'resilience': latest_result.resilience,
-                    'cooperation': latest_result.cooperation,
-                    'natural_acceptance': latest_result.natural_acceptance,
-                    'non_rationality': latest_result.non_rationality
+                    '勇気': latest_result.courage,
+                    '打たれ強さ': latest_result.resilience,
+                    '協調性': latest_result.cooperation,
+                    '自然体': latest_result.natural_acceptance,
+                    '非合理性': latest_result.non_rationality
                 }
             
             participants_data.append({
