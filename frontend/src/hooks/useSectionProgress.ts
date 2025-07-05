@@ -1,5 +1,6 @@
 // frontend/src/hooks/useSectionProgress.ts
 import { useState, useCallback, useMemo, useEffect } from 'react';
+import { loadTestProgress, saveTestProgress } from '../utils/testUtils';
 
 interface Question {
   question_id: string;
@@ -86,7 +87,7 @@ export const useSectionProgress = (questions: Question[]) => {
   const [currentCategoryIndex, setCurrentCategoryIndex] = useState<number>(0);
   const [currentSectionIndex, setCurrentSectionIndex] = useState<number>(0);
 
-  // カテゴリの順序を定義（self_affirmation → self_esteem に修正）
+  // カテゴリの順序を定義
   const categoryOrder = useMemo(() => ['sportsmanship', 'athlete_mind', 'self_esteem'], []);
 
   // 現在のユーザーの役割を質問から推測
@@ -148,7 +149,7 @@ export const useSectionProgress = (questions: Question[]) => {
         title: 'アスリートマインド',
         description: 'アスリートとしての精神的な特性を評価します'
       },
-      self_esteem: {  // self_affirmation → self_esteem に修正
+      self_esteem: {
         title: '自己肯定感',
         description: '自分自身に対する肯定的な感情を測定します'
       }
@@ -165,24 +166,30 @@ export const useSectionProgress = (questions: Question[]) => {
     }));
   }, []);
 
-  // ローカルストレージから保存された進捗を読み込む
+  // ローカルストレージから保存された進捗を読み込む（修正版）
   useEffect(() => {
     if (userRole && questions.length > 0) {
-      const savedProgress = localStorage.getItem(`test_progress_${userRole}`);
-      if (savedProgress) {
-        try {
-          const parsedProgress = JSON.parse(savedProgress);
-          console.log('保存された進捗を読み込み:', {
-            userRole,
-            savedAnswersCount: Object.keys(parsedProgress).length
-          });
-          setAnswers(parsedProgress);
-        } catch (error) {
-          console.error('進捗の読み込みエラー:', error);
-        }
+      const savedAnswers = loadTestProgress(userRole);
+      if (savedAnswers) {
+        console.log('保存された進捗を読み込み:', {
+          userRole,
+          savedAnswersCount: Object.keys(savedAnswers).length
+        });
+        setAnswers(savedAnswers);
       }
     }
   }, [userRole, questions.length]);
+
+  // 回答の自動保存
+  useEffect(() => {
+    if (userRole && Object.keys(answers).length > 0) {
+      const timeoutId = setTimeout(() => {
+        saveTestProgress(answers, userRole);
+      }, 1000); // 1秒のデバウンス
+
+      return () => clearTimeout(timeoutId);
+    }
+  }, [answers, userRole]);
 
   // セクション別の進捗データを計算
   const progressData = useMemo(() => {

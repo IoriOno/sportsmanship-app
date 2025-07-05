@@ -84,14 +84,14 @@ interface ValidationError {
 
 /**
  * フロントエンドの回答形式をバックエンドの期待する形式に変換
- * @param answers - フロントエンドの回答データ Record<question_number, answer_value>
+ * @param answers - フロントエンドの回答データ Record<question_id, answer_value>（修正：question_idをキーとする）
  * @param questions - 質問データの配列
  * @returns バックエンドAPI用の回答データ（answersのみ）
  */
 export const convertAnswersForAPI = (
-  answers: Record<number, number>,
+  answers: Record<string, number>,  // 修正：number から string に変更（question_idはstring）
   questions: Question[]
-): { answers: TestAnswer[] } => {  // 戻り値の型を変更
+): { answers: TestAnswer[] } => {
   console.log('🔄 convertAnswersForAPI 開始:', {
     answersCount: Object.keys(answers).length,
     questionsCount: questions.length,
@@ -103,29 +103,18 @@ export const convertAnswersForAPI = (
     }))
   });
 
-  // 質問番号から質問IDへのマッピングを作成（UUIDをそのまま使用）
-  const questionNumberToId = questions.reduce((acc, question) => {
-    acc[question.question_number] = question.question_id;
-    return acc;
-  }, {} as Record<number, string>);
-
-  console.log('questionNumberToId マッピング作成完了:', {
-    mappingCount: Object.keys(questionNumberToId).length,
-    sampleMapping: Object.entries(questionNumberToId).slice(0, 5)
-  });
-
-  // 回答データを変換
-  const apiAnswers: TestAnswer[] = Object.entries(answers).map(([questionNumber, answerValue]) => {
-    const questionNum = parseInt(questionNumber);
-    const questionId = questionNumberToId[questionNum];
+  // 回答データを変換（question_idをそのまま使用）
+  const apiAnswers: TestAnswer[] = Object.entries(answers).map(([questionId, answerValue]) => {
+    // questionIdが有効かチェック
+    const question = questions.find(q => q.question_id === questionId);
     
-    if (!questionId) {
-      console.error(`Question ID not found for question number: ${questionNum}`, {
-        questionNum,
-        availableQuestionNumbers: Object.keys(questionNumberToId).slice(0, 10),
-        totalMappings: Object.keys(questionNumberToId).length
+    if (!question) {
+      console.error(`Question not found for question ID: ${questionId}`, {
+        questionId,
+        availableQuestionIds: questions.slice(0, 10).map(q => q.question_id),
+        totalQuestions: questions.length
       });
-      throw new Error(`Question ID not found for question number: ${questionNum}`);
+      throw new Error(`Question not found for question ID: ${questionId}`);
     }
 
     return {
@@ -139,20 +128,22 @@ export const convertAnswersForAPI = (
     sampleConvertedData: apiAnswers.slice(0, 3)
   });
 
-  // 回答数のバリデーション
-  if (apiAnswers.length !== 99) {
+  // 回答数のバリデーション（ユーザーの役割に応じた質問数）
+  const activeQuestions = questions.filter(q => q.is_active);
+  if (apiAnswers.length !== activeQuestions.length) {
     console.error('回答数バリデーションエラー:', {
-      expected: 99,
+      expected: activeQuestions.length,
       actual: apiAnswers.length,
-      answersKeys: Object.keys(answers),
-      questionsCount: questions.length
+      answersKeys: Object.keys(answers).slice(0, 10),
+      questionsCount: questions.length,
+      activeQuestionsCount: activeQuestions.length
     });
-    throw new Error(`Expected 99 answers, but got ${apiAnswers.length}`);
+    throw new Error(`Expected ${activeQuestions.length} answers, but got ${apiAnswers.length}`);
   }
 
   console.log('convertAnswersForAPI 完了:', {
     finalAnswersCount: apiAnswers.length,
-    isValid: apiAnswers.length === 99
+    isValid: apiAnswers.length === activeQuestions.length
   });
 
   return {
@@ -162,14 +153,14 @@ export const convertAnswersForAPI = (
 
 /**
  * テスト結果をバックエンドAPIに送信
- * @param answers - フロントエンドの回答データ
+ * @param answers - フロントエンドの回答データ（question_idをキー）
  * @param questions - 質問データの配列
  * @returns テスト結果のレスポンス
  */
 export const submitTestResults = async (
-  answers: Record<number, number>,
+  answers: Record<string, number>,  // 修正：number から string に変更
   questions: Question[],
-  userId: string  // userIdパラメータを追加
+  userId: string
 ): Promise<TestResultResponse> => {
   let submitData: TestSubmitData | null = null;
   
@@ -287,36 +278,37 @@ export const submitTestResults = async (
 
 /**
  * 回答データの整合性をチェック
- * @param answers - フロントエンドの回答データ
+ * @param answers - フロントエンドの回答データ（question_idをキー）
  * @param questions - 質問データの配列
  * @returns 整合性チェックの結果
  */
 export const validateAnswers = (
-  answers: Record<number, number>,
+  answers: Record<string, number>,  // 修正：number から string に変更
   questions: Question[]
 ): { isValid: boolean; errors: string[] } => {
   const errors: string[] = [];
   
+  // アクティブな質問のみを対象にする
+  const activeQuestions = questions.filter(q => q.is_active);
+  
   // 回答数チェック
   const answerCount = Object.keys(answers).length;
-  if (answerCount !== 99) {
-    errors.push(`回答数が不正です。期待値: 99問, 実際: ${answerCount}問`);
+  if (answerCount !== activeQuestions.length) {
+    errors.push(`回答数が不正です。期待値: ${activeQuestions.length}問, 実際: ${answerCount}問`);
   }
   
   // 全質問への回答チェック
-  const expectedQuestions = questions.map(q => q.question_number).sort((a, b) => a - b);
-  const answeredQuestions = Object.keys(answers).map(q => parseInt(q)).sort((a, b) => a - b);
-  
-  expectedQuestions.forEach(questionNum => {
-    if (!answeredQuestions.includes(questionNum)) {
-      errors.push(`問${questionNum}への回答がありません`);
+  activeQuestions.forEach(question => {
+    if (!answers[question.question_id]) {
+      errors.push(`問${question.question_number}への回答がありません`);
     }
   });
   
   // 回答値の範囲チェック
-  Object.entries(answers).forEach(([questionNumber, answerValue]) => {
-    if (answerValue < 0 || answerValue > 10) {
-      errors.push(`問${questionNumber}の回答値が範囲外です (値: ${answerValue})`);
+  Object.entries(answers).forEach(([questionId, answerValue]) => {
+    const question = questions.find(q => q.question_id === questionId);
+    if (question && (answerValue < 0 || answerValue > 10)) {
+      errors.push(`問${question.question_number}の回答値が範囲外です (値: ${answerValue})`);
     }
   });
   
@@ -327,41 +319,44 @@ export const validateAnswers = (
 };
 
 /**
- * テスト進捗の保存（ローカルストレージ）
- * @param answers - 回答データ
+ * テスト進捗の保存（ローカルストレージ）- 役割別に保存
+ * @param answers - 回答データ（question_idをキー）
  * @param userRole - ユーザーの役割
  */
-export const saveTestProgress = (answers: Record<number, number>, userRole: string): void => {
+export const saveTestProgress = (answers: Record<string, number>, userRole: string): void => {
   try {
+    const key = `test_progress_${userRole}`;
     const progressData = {
       answers,
-      userRole,
       timestamp: new Date().toISOString()
     };
-    localStorage.setItem('test_progress', JSON.stringify(progressData));
+    localStorage.setItem(key, JSON.stringify(progressData));
+    console.log(`進捗を保存しました: ${key}`, {
+      answersCount: Object.keys(answers).length
+    });
   } catch (error) {
     console.warn('Failed to save test progress:', error);
   }
 };
 
 /**
- * テスト進捗の読み込み（ローカルストレージ）
+ * テスト進捗の読み込み（ローカルストレージ）- 役割別に読み込み
  * @param userRole - ユーザーの役割
  * @returns 保存された回答データ
  */
-export const loadTestProgress = (userRole: string): Record<number, number> | null => {
+export const loadTestProgress = (userRole: string): Record<string, number> | null => {
   try {
-    const savedData = localStorage.getItem('test_progress');
+    const key = `test_progress_${userRole}`;
+    const savedData = localStorage.getItem(key);
     if (!savedData) return null;
     
     const progressData = JSON.parse(savedData);
+    console.log(`進捗を読み込みました: ${key}`, {
+      answersCount: Object.keys(progressData.answers).length,
+      timestamp: progressData.timestamp
+    });
     
-    // ユーザーロールが一致する場合のみ復元
-    if (progressData.userRole === userRole) {
-      return progressData.answers;
-    }
-    
-    return null;
+    return progressData.answers;
   } catch (error) {
     console.warn('Failed to load test progress:', error);
     return null;
@@ -370,10 +365,24 @@ export const loadTestProgress = (userRole: string): Record<number, number> | nul
 
 /**
  * テスト進捗をクリア
+ * @param userRole - 特定の役割の進捗のみクリア（省略時は全クリア）
  */
-export const clearTestProgress = (): void => {
+export const clearTestProgress = (userRole?: string): void => {
   try {
-    localStorage.removeItem('test_progress');
+    if (userRole) {
+      // 特定の役割の進捗のみクリア
+      const key = `test_progress_${userRole}`;
+      localStorage.removeItem(key);
+      console.log(`進捗をクリアしました: ${key}`);
+    } else {
+      // すべての役割の進捗をクリア
+      const roles = ['player', 'coach', 'mother', 'father', 'adult'];
+      roles.forEach(role => {
+        const key = `test_progress_${role}`;
+        localStorage.removeItem(key);
+      });
+      console.log('すべての進捗をクリアしました');
+    }
   } catch (error) {
     console.warn('Failed to clear test progress:', error);
   }

@@ -1,3 +1,5 @@
+//file: frontend/src/components/test/SectionView.tsx
+
 import React from 'react';
 import { CheckCircleIcon } from '@heroicons/react/24/solid';
 import QuestionCard from './QuestionCard';

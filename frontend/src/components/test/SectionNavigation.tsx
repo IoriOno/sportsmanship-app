@@ -1,3 +1,5 @@
+// frontend/src/components/test/SectionNavigation.tsx
+
 import React, { useState } from 'react';
 import { 
   ChevronLeftIcon, 
@@ -71,33 +73,18 @@ const SectionNavigation: React.FC<SectionNavigationProps> = ({
 }) => {
   const [showSectionList, setShowSectionList] = useState(false);
 
-  // ブレッドクラム表示
-  const getBreadcrumb = () => {
-    const categoryProgress = `${currentCategory.completedSections}/${currentCategory.totalSections}`;
-    const overallProgressText = `${overallProgress.completedSections}/${overallProgress.totalSections}`;
-    
-    return (
-      <div className="flex items-center space-x-2 text-sm text-gray-600">
-        <span className="font-medium">{currentCategory.title}</span>
-        <span>({categoryProgress})</span>
-        <span>•</span>
-        <span className="font-medium">{currentSection.title}</span>
-        <span>•</span>
-        <span>全体進捗: {overallProgressText}</span>
-      </div>
-    );
-  };
-
   return (
     <div className="bg-white border border-gray-200 rounded-lg shadow-sm">
       {/* ヘッダー部分 */}
       <div className="p-4 border-b border-gray-200">
         <div className="flex items-center justify-between">
           <div>
-            {getBreadcrumb()}
+            <div className="flex items-center space-x-2 text-sm text-gray-600">
+              <span>全体進捗: {overallProgress.completedSections}/{overallProgress.totalSections} セクション</span>
+            </div>
             <div className="mt-2 flex items-center space-x-4">
               <div className="text-xs text-gray-500">
-                全体進捗: {Math.round(overallProgress.completionPercentage)}%
+                {Math.round(overallProgress.completionPercentage)}%
               </div>
               <div className="w-32 bg-gray-200 rounded-full h-2">
                 <div 
@@ -118,7 +105,7 @@ const SectionNavigation: React.FC<SectionNavigationProps> = ({
         </div>
       </div>
 
-      {/* セクション一覧 (折りたたみ可能) */}
+      {/* セクション一覧 (折りたたみ可能) - タイトルを非表示 */}
       {showSectionList && (
         <div className="p-4 border-b border-gray-200 bg-gray-50">
           <div className="space-y-4">
@@ -126,7 +113,7 @@ const SectionNavigation: React.FC<SectionNavigationProps> = ({
               <div key={category.category}>
                 <h4 className="font-semibold text-gray-800 mb-2 flex items-center">
                   {category.isCompleted && <CheckCircleIconSolid className="w-4 h-4 text-green-500 mr-2" />}
-                  {category.title}
+                  カテゴリー {categoryIndex + 1}
                   <span className="ml-2 text-xs text-gray-500">
                     ({category.completedSections}/{category.totalSections})
                   </span>
@@ -135,7 +122,7 @@ const SectionNavigation: React.FC<SectionNavigationProps> = ({
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2">
                   {allSections
                     .filter(s => s.categoryIndex === categoryIndex)
-                    .map((section) => {
+                    .map((section, idx) => {
                       const isCurrent = section.categoryIndex === currentSection.categoryIndex && 
                                        section.sectionIndex === currentSection.sectionIndex;
                       const canJump = section.isCompleted || isCurrent;
@@ -154,7 +141,7 @@ const SectionNavigation: React.FC<SectionNavigationProps> = ({
                           }`}
                         >
                           <div className="flex items-center justify-between">
-                            <span className="truncate">{section.title}</span>
+                            <span className="truncate">セクション {idx + 1}</span>
                             {section.isCompleted ? (
                               <CheckCircleIcon className="w-3 h-3 flex-shrink-0 ml-1" />
                             ) : (
@@ -187,10 +174,7 @@ const SectionNavigation: React.FC<SectionNavigationProps> = ({
         </Button>
 
         <div className="text-center">
-          <div className="text-sm font-medium text-gray-900">
-            {currentSection.title}
-          </div>
-          <div className="text-xs text-gray-500">
+          <div className="text-sm text-gray-500">
             {currentSection.answeredQuestions}/{currentSection.totalQuestions} 問完了
           </div>
         </div>

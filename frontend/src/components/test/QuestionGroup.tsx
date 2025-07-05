@@ -1,3 +1,5 @@
+//file: frontend/src/components/test/QuestionGroup.tsx
+
 import React from 'react';
 import { CheckCircleIcon as CheckCircleIconSolid } from '@heroicons/react/24/solid';
 import QuestionCard from './QuestionCard';
