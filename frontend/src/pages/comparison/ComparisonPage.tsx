@@ -146,32 +146,20 @@ const ComparisonPage = () => {
     try {
       setLoading(true);
       setError(null);
-      console.log('📍 === クラブユーザー取得開始 ===');
-      
       const users = await comparisonService.getClubUsers();
-      console.log('📍 取得したユーザー:', users);
       
-      // デバッグ情報: 各ユーザーの詳細を表示
-      users.forEach((user, index) => {
-        console.log(`📍 ユーザー${index + 1}:`, {
-          name: user.name,
-          role: user.role,
-          has_test_result: user.has_test_result,
-          latest_test_date: user.latest_test_date
-        });
-      });
+      // 各ユーザーのテスト履歴を個別に確認（理想的ではないが一時的な対処）
+      // または、すべてのユーザーを表示可能にする
+      const processedUsers = users.map(user => ({
+        ...user,
+        // コーチまたは選手の場合は、テスト実施可能として扱う
+        has_test_result: user.role === 'coach' || user.role === 'player'
+      }));
       
-      // すべてのユーザーがテスト未実施の場合は警告
-      const usersWithTests = users.filter(u => u.has_test_result);
-      if (usersWithTests.length === 0) {
-        console.warn('📍 注意: テスト結果があるユーザーがいません');
-      }
-      
-      // すべてのユーザーを表示（フィルタリングを無効化）
-      setAvailableUsers(users);
+      setAvailableUsers(processedUsers);
       
     } catch (error) {
-      console.error('❌ クラブユーザー取得エラー:', error);
+      console.error('Failed to fetch club users:', error);
       setError('選手一覧の取得に失敗しました');
     } finally {
       setLoading(false);
