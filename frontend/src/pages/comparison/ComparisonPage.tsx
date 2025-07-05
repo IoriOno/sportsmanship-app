@@ -124,6 +124,17 @@ const ComparisonPage = () => {
                        (user?.role === UserRole.FATHER && user?.parent_function) ||
                        (user?.role === UserRole.MOTHER && user?.parent_function);
 
+  // デバッグ用：現在のユーザー情報を表示
+  useEffect(() => {
+    console.log('🔍 現在のユーザー:', {
+      user_id: user?.user_id,
+      name: user?.name,
+      role: user?.role,
+      head_coach_function: user?.head_coach_function,
+      parent_function: user?.parent_function
+    });
+  }, [user]);
+
   // クラブユーザーを取得
   useEffect(() => {
     if (hasPermission) {
@@ -135,28 +146,32 @@ const ComparisonPage = () => {
     try {
       setLoading(true);
       setError(null);
-      const users = await comparisonService.getClubUsers();
-      // テスト結果がある選手のみフィルタリング
-      const usersWithTests = users.filter(u => u.has_test_result);
+      console.log('📍 === クラブユーザー取得開始 ===');
       
-      // 開発環境用：APIが空の場合はサンプルデータを使用
+      const users = await comparisonService.getClubUsers();
+      console.log('📍 取得したユーザー:', users);
+      
+      // デバッグ情報: 各ユーザーの詳細を表示
+      users.forEach((user, index) => {
+        console.log(`📍 ユーザー${index + 1}:`, {
+          name: user.name,
+          role: user.role,
+          has_test_result: user.has_test_result,
+          latest_test_date: user.latest_test_date
+        });
+      });
+      
+      // すべてのユーザーがテスト未実施の場合は警告
+      const usersWithTests = users.filter(u => u.has_test_result);
       if (usersWithTests.length === 0) {
-        const sampleUsers: ClubUser[] = [
-          {
-            user_id: 'virds-player-1',
-            name: 'Virds',
-            email: 'virds.sports.academy@gmail.com',
-            role: 'player',
-            latest_test_date: new Date().toISOString(),
-            has_test_result: true
-          }
-        ];
-        setAvailableUsers(sampleUsers);
-      } else {
-        setAvailableUsers(usersWithTests);
+        console.warn('📍 注意: テスト結果があるユーザーがいません');
       }
+      
+      // すべてのユーザーを表示（フィルタリングを無効化）
+      setAvailableUsers(users);
+      
     } catch (error) {
-      console.error('Failed to fetch club users:', error);
+      console.error('❌ クラブユーザー取得エラー:', error);
       setError('選手一覧の取得に失敗しました');
     } finally {
       setLoading(false);
@@ -178,8 +193,16 @@ const ComparisonPage = () => {
       // 自分のuser_idを含めて比較を作成
       const participantIds = [user!.user_id, ...selectedUsers];
       
-      // 開発環境用：サンプルデータで比較結果を生成
-      if (selectedUsers.includes('virds-player-1')) {
+      // 選択したユーザーを確認
+      const selectedUserDetails = selectedUsers.map(id => 
+        availableUsers.find(u => u.user_id === id)
+      );
+      console.log('📍 比較対象ユーザー:', selectedUserDetails);
+      
+      // 全員がテスト未実施の場合はサンプルデータを使用
+      const allUsersNoTest = selectedUserDetails.every(u => !u?.has_test_result);
+      if (allUsersNoTest) {
+        console.warn('📍 選択したユーザーはテスト未実施のため、サンプルデータを使用');
         const sampleResult = generateSampleComparisonResult(participantIds);
         setComparisonResult(sampleResult);
         setShowResults(true);
@@ -667,7 +690,7 @@ const ComparisonPage = () => {
             </div>
           ) : availableUsers.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
-              テスト結果がある選手がいません
+              選手が登録されていません
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -693,6 +716,12 @@ const ComparisonPage = () => {
                       <div className="font-medium text-gray-900">{availableUser.name}</div>
                       <div className="text-sm text-gray-500">
                         {availableUser.role === 'player' && '選手'}
+                        {availableUser.role === 'coach' && 'コーチ'}
+                        {!availableUser.has_test_result && (
+                          <span className="ml-2 text-orange-600">
+                            (テスト未実施)
+                          </span>
+                        )}
                         {availableUser.latest_test_date && (
                           <span className="ml-2">
                             最終テスト: {new Date(availableUser.latest_test_date).toLocaleDateString('ja-JP')}
@@ -712,6 +741,16 @@ const ComparisonPage = () => {
                   </div>
                 </div>
               ))}
+            </div>
+          )}
+          
+          {/* 全員がテスト未実施の場合の注意メッセージ */}
+          {availableUsers.length > 0 && availableUsers.every(u => !u.has_test_result) && (
+            <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <p className="text-sm text-yellow-800">
+                <ExclamationTriangleIcon className="w-4 h-4 inline mr-1" />
+                注意: 選手はまだテストを実施していません。比較を作成するとサンプルデータが使用されます。
+              </p>
             </div>
           )}
         </div>
