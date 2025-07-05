@@ -1,3 +1,4 @@
+## backend/app/config.py
 import os
 from typing import Optional, List
 from pydantic import BaseSettings, validator
@@ -40,7 +41,8 @@ class Settings(BaseSettings):
         "http://127.0.0.1:3000",
         "http://localhost:8000", 
         "http://127.0.0.1:8000",
-        "https://sportsmanship-app.netlify.app"
+        "https://sportsmanship-app.netlify.app",
+        "https://sportsmanship-app-eb013246c2ae.herokuapp.com"
     ]
     
     @validator("POSTGRES_USER", "POSTGRES_PASSWORD", "POSTGRES_DB", pre=True, always=True)

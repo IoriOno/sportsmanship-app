@@ -1,3 +1,4 @@
+# backend/app/api/comparisons.py
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
@@ -16,7 +17,7 @@ from app.services.comparison_service import ComparisonService
 router = APIRouter()
 
 
-@router.post("/create", response_model=ComparisonResultSchema)
+@router.post("/create")
 def create_comparison(
     request: ComparisonRequest,
     db: Session = Depends(get_db),

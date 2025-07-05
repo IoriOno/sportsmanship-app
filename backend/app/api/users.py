@@ -64,6 +64,8 @@ def read_current_user_club_members(
     current_user: User = Depends(get_current_active_user_required)
 ):
     """現在のユーザーが所属するクラブのメンバー一覧を取得"""
+    from app.models.test_result import TestResult
+    
     # デバッグ用ログ
     print(f"Current user: {current_user.email}")
     print(f"Current user club_id: {current_user.club_id}")
@@ -78,18 +80,24 @@ def read_current_user_club_members(
     users = db.query(User).filter(User.club_id == current_user.club_id).all()
     print(f"Found {len(users)} users in club {current_user.club_id}")
     
-    # 手動でシリアライズ
-    return [
-        {
+    # 各ユーザーのテスト結果を確認
+    result = []
+    for user in users:
+        # 最新のテスト結果を取得
+        latest_test = db.query(TestResult).filter(
+            TestResult.user_id == user.user_id
+        ).order_by(TestResult.test_date.desc()).first()
+        
+        result.append({
             "user_id": str(user.user_id),
             "name": user.name,
             "email": user.email,
             "role": user.role,
-            "latest_test_date": None,  # TODO: 実装
-            "has_test_result": False   # TODO: 実装
-        }
-        for user in users
-    ]
+            "latest_test_date": latest_test.test_date.isoformat() if latest_test else None,
+            "has_test_result": latest_test is not None
+        })
+    
+    return result
 
 
 @router.get("/club/{club_id}", response_model=List[UserSchema])

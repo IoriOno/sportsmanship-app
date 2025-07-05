@@ -1,3 +1,4 @@
+# File: backend/app/models/comparison.py
 from sqlalchemy import Column, DateTime, ForeignKey, JSON
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.sql import func

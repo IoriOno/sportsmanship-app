@@ -1,3 +1,4 @@
+# # File: backend/app/services/comparison_service.py
 from typing import List
 from uuid import UUID
 from sqlalchemy.orm import Session
@@ -38,31 +39,67 @@ class ComparisonService:
         
         return True
     
-    def create_comparison(self, created_by: UUID, participant_ids: List[UUID]) -> ComparisonResult:
+    def create_comparison(self, created_by: UUID, participant_ids: List[UUID]) -> dict:
         # Get participants and their latest test results
         participants_data = []
         
         for participant_id in participant_ids:
             user = self.db.query(User).filter(User.user_id == participant_id).first()
+            if not user:
+                continue
+                
             latest_result = self.db.query(TestResult).filter(
                 TestResult.user_id == participant_id
             ).order_by(TestResult.test_date.desc()).first()
             
             if not latest_result:
-                continue
-            
-            qualities = {
-                '内省': latest_result.introspection,
-                '克己': latest_result.self_control,
-                '献身': latest_result.devotion,
-                '直感': latest_result.intuition,
-                '繊細': latest_result.sensitivity,
-                '堅実': latest_result.steadiness,
-                '比較': latest_result.comparison,
-                '結果': latest_result.result,
-                '主張': latest_result.assertion,
-                'こだわり・丁寧': latest_result.commitment
-            }
+                # テスト結果がない場合はデフォルト値を使用
+                qualities = {
+                    'self_determination': 25,
+                    'self_acceptance': 25,
+                    'self_worth': 25,
+                    'self_efficacy': 25,
+                    'introspection': 25,
+                    'self_control': 25,
+                    'devotion': 25,
+                    'intuition': 25,
+                    'sensitivity': 25,
+                    'steadiness': 25,
+                    'comparison': 25,
+                    'result': 25,
+                    'assertion': 25,
+                    'commitment': 25,
+                    'courage': 25,
+                    'resilience': 25,
+                    'cooperation': 25,
+                    'natural_acceptance': 25,
+                    'non_rationality': 25
+                }
+            else:
+                qualities = {
+                    # 自己肯定感
+                    'self_determination': latest_result.self_determination,
+                    'self_acceptance': latest_result.self_acceptance,
+                    'self_worth': latest_result.self_worth,
+                    'self_efficacy': latest_result.self_efficacy,
+                    # アスリートマインド
+                    'introspection': latest_result.introspection,
+                    'self_control': latest_result.self_control,
+                    'devotion': latest_result.devotion,
+                    'intuition': latest_result.intuition,
+                    'sensitivity': latest_result.sensitivity,
+                    'steadiness': latest_result.steadiness,
+                    'comparison': latest_result.comparison,
+                    'result': latest_result.result,
+                    'assertion': latest_result.assertion,
+                    'commitment': latest_result.commitment,
+                    # スポーツマンシップ
+                    'courage': latest_result.courage,
+                    'resilience': latest_result.resilience,
+                    'cooperation': latest_result.cooperation,
+                    'natural_acceptance': latest_result.natural_acceptance,
+                    'non_rationality': latest_result.non_rationality
+                }
             
             participants_data.append({
                 'participant_id': str(user.user_id),
@@ -71,14 +108,18 @@ class ComparisonService:
                 'qualities': qualities
             })
         
+        # 参加者が不足している場合はエラー
+        if len(participants_data) < 2:
+            raise ValueError("At least 2 participants are required for comparison")
+        
         # Calculate differences (for 2-person comparison)
         differences = []
-        if len(participants_data) == 2:
+        if len(participants_data) >= 2:
             p1_qualities = participants_data[0]['qualities']
             p2_qualities = participants_data[1]['qualities']
             
             for quality in p1_qualities:
-                diff = abs(p1_qualities[quality] - p2_qualities[quality])
+                diff = p1_qualities[quality] - p2_qualities[quality]
                 differences.append({
                     'quality': quality,
                     'difference': diff,
@@ -86,7 +127,7 @@ class ComparisonService:
                     'participant2_value': p2_qualities[quality]
                 })
             
-            differences.sort(key=lambda x: x['difference'], reverse=True)
+            differences.sort(key=lambda x: abs(x['difference']), reverse=True)
         
         # Generate analysis
         mutual_understanding = self._generate_mutual_understanding(participants_data, differences)
@@ -112,8 +153,19 @@ class ComparisonService:
         self.db.commit()
         self.db.refresh(comparison_result)
         
-        return comparison_result
-    
+        # レスポンス用のデータを整形して返す
+        return {
+            'comparison_id': str(comparison_result.comparison_id),
+            'participants': participants_data,
+            'differences': differences,
+            'mutual_understanding': mutual_understanding,
+            'good_interactions': good_interactions,
+            'bad_interactions': bad_interactions,
+            'created_by': str(created_by),
+            'created_date': comparison_result.created_date.isoformat()
+        }
+        
+        
     def _generate_mutual_understanding(self, participants_data, differences) -> str:
         if len(participants_data) < 2:
             return "比較するには少なくとも2人の参加者が必要です。"
