@@ -4,7 +4,7 @@
   publish = "build"
 
 [build.environment]
-  REACT_APP_API_URL = "https://sportsmanship-app-eb013246c2ae.herokuapp.com"
+  REACT_APP_API_URL = "https://sportsmanship-app-yuri-d62c46fdde93.herokuapp.com"
   NODE_VERSION = "18"
 
 [[redirects]]
