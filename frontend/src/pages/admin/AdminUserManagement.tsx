@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import AdminHeader from '../../components/admin/AdminHeader';
+import { createApiUrl } from '../../config/api';
 
 interface AdminUser {
   email: string;
@@ -24,7 +25,7 @@ const AdminUserManagement = () => {
       setLoading(true);
       const token = localStorage.getItem('admin_token');
       
-      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/api/v1/admin/admins`, {
+      const response = await fetch(createApiUrl('/api/v1/admin/admins'), {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -77,7 +78,7 @@ const AdminUserManagement = () => {
 
     try {
       const token = localStorage.getItem('admin_token');
-      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/api/v1/admin/admins`, {
+      const response = await fetch(createApiUrl('/api/v1/admin/admins'), {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -126,7 +127,7 @@ const AdminUserManagement = () => {
 
     try {
       const token = localStorage.getItem('admin_token');
-      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/api/v1/admin/admins/${encodeURIComponent(email)}`, {
+      const response = await fetch(createApiUrl(`/api/v1/admin/admins/${encodeURIComponent(email)}`), {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,

@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import AdminHeader from '../../components/admin/AdminHeader';
+import { createApiUrl } from '../../config/api';
 
 interface User {
   user_id: string;
@@ -10,6 +11,7 @@ interface User {
   club_id: string;
   parent_function: boolean;
   head_coach_function: boolean;
+  head_parent_function?: boolean;
   created_date: string;
   updated_date?: string;
 }
@@ -49,11 +51,11 @@ const UserAdminPage = () => {
   const [originalUser, setOriginalUser] = useState<User | null>(null);
 
   // ユーザー一覧を取得
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     try {
       setLoading(true);
       const token = localStorage.getItem('admin_token');
-      let url = `${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/api/v1/admin/users`;
+      let url = createApiUrl('/api/v1/admin/users');
       
       const params = new URLSearchParams();
       if (searchTerm) params.append('search', searchTerm);
@@ -82,13 +84,13 @@ const UserAdminPage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [searchTerm, filterRole, filterClub]);
 
   // 統計情報を取得
-  const fetchStatistics = async () => {
+  const fetchStatistics = useCallback(async () => {
     try {
       const token = localStorage.getItem('admin_token');
-      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/api/v1/admin/users/statistics/summary`, {
+      const response = await fetch(createApiUrl('/api/v1/admin/users/statistics/summary'), {
         headers: {
           'Authorization': token ? `Bearer ${token}` : '',
         },
@@ -101,13 +103,13 @@ const UserAdminPage = () => {
     } catch (err) {
       console.error('統計情報の取得に失敗:', err);
     }
-  };
+  }, []);
 
   // 全クラブ情報を取得
-  const fetchClubs = async () => {
+  const fetchClubs = useCallback(async () => {
     try {
       const token = localStorage.getItem('admin_token');
-      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/api/v1/admin/clubs`, {
+      const response = await fetch(createApiUrl('/api/v1/admin/clubs'), {
         headers: {
           'Authorization': token ? `Bearer ${token}` : '',
         },
@@ -120,7 +122,7 @@ const UserAdminPage = () => {
     } catch (err) {
       console.error('クラブ情報の取得に失敗:', err);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchUsers();
@@ -137,7 +139,7 @@ const UserAdminPage = () => {
       
       // 役割の更新
       if (originalUser && user.role !== originalUser.role) {
-        const roleResponse = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/api/v1/admin/users/${user.user_id}/role`, {
+        const roleResponse = await fetch(createApiUrl(`/api/v1/admin/users/${user.user_id}/role`), {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
@@ -157,7 +159,7 @@ const UserAdminPage = () => {
       
       // クラブIDの更新
       if (originalUser && user.club_id !== originalUser.club_id) {
-        const clubResponse = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/api/v1/admin/users/${user.user_id}/club`, {
+        const clubResponse = await fetch(createApiUrl(`/api/v1/admin/users/${user.user_id}/club`), {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
@@ -197,7 +199,7 @@ const UserAdminPage = () => {
     try {
       const token = localStorage.getItem('admin_token');
       const endpoint = isActive ? 'activate' : 'deactivate';
-      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/api/v1/admin/users/${userId}/${endpoint}`, {
+      const response = await fetch(createApiUrl(`/api/v1/admin/users/${userId}/${endpoint}`), {
         method: 'PUT',
         headers: {
           'Authorization': token ? `Bearer ${token}` : '',
@@ -225,7 +227,7 @@ const UserAdminPage = () => {
 
     try {
       const token = localStorage.getItem('admin_token');
-      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/api/v1/admin/users/${userId}`, {
+      const response = await fetch(createApiUrl(`/api/v1/admin/users/${userId}`), {
         method: 'DELETE',
         headers: {
           'Authorization': token ? `Bearer ${token}` : '',
@@ -256,7 +258,7 @@ const UserAdminPage = () => {
 
     try {
       const token = localStorage.getItem('admin_token');
-      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/api/v1/admin/users/${userId}/head-coach`, {
+      const response = await fetch(createApiUrl(`/api/v1/admin/users/${userId}/head-coach`), {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -274,6 +276,38 @@ const UserAdminPage = () => {
       }
     } catch (err) {
       alert('ヘッドコーチ権限の更新に失敗しました');
+    }
+  };
+
+  // ヘッド親権限を切り替え
+  const handleToggleHeadParent = async (userId: string, userName: string, currentStatus: boolean) => {
+    const newStatus = !currentStatus;
+    const statusText = newStatus ? '有効' : '無効';
+    
+    if (!window.confirm(`${userName}のヘッド親権限を${statusText}にしますか？`)) {
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('admin_token');
+      const response = await fetch(createApiUrl(`/api/v1/admin/users/${userId}/head-parent`), {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': token ? `Bearer ${token}` : '',
+        },
+        body: JSON.stringify({ is_head_parent: newStatus }),
+      });
+
+      if (response.ok) {
+        fetchUsers();
+        alert(`ヘッド親権限を${statusText}にしました`);
+      } else {
+        const errorData = await response.json();
+        alert(`エラー: ${errorData.detail || 'ヘッド親権限の更新に失敗しました'}`);
+      }
+    } catch (err) {
+      alert('ヘッド親権限の更新に失敗しました');
     }
   };
 
@@ -511,6 +545,17 @@ const UserAdminPage = () => {
                       >
                         HC
                       </button>
+                                              <button
+                          onClick={() => handleToggleHeadParent(user.user_id, user.name, user.head_parent_function || false)}
+                          className={`${
+                            user.head_parent_function
+                              ? 'bg-purple-600 hover:bg-purple-700'
+                              : 'bg-purple-400 hover:bg-purple-500'
+                          } text-white px-3 py-1 rounded text-sm`}
+                          title={user.head_parent_function ? 'ヘッド親権限を無効化' : 'ヘッド親権限を有効化'}
+                        >
+                          HP
+                        </button>
                       <button
                         onClick={() => handleToggleActive(user.user_id, true)}
                         className="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1 rounded text-sm"

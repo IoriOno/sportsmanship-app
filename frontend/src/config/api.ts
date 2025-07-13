@@ -1,4 +1,5 @@
 import { ApiConfig } from '../types/api';
+import { useAuthStore } from '../store/authStore';
 
 // APIのベースURL設定
 const getApiUrl = (): string => {
@@ -71,7 +72,14 @@ export const createApiUrl = (endpoint: string): string => {
 
 // 認証済みリクエストのオプションを生成
 export const getAuthenticatedRequestOptions = (): RequestInit => {
-  const token = localStorage.getItem('token') || localStorage.getItem('auth-token');
+  // Zustandストアからトークンを取得
+  const { token, checkTokenExpiry } = useAuthStore.getState();
+  
+  // トークンの有効期限をチェック
+  if (token && !checkTokenExpiry()) {
+    console.warn('トークンの有効期限が切れています');
+    // ログアウト処理はcheckTokenExpiry内で実行される
+  }
 
   return {
     headers: {

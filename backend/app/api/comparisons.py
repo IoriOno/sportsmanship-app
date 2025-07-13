@@ -29,10 +29,21 @@ def create_comparison(
     if not comparison_service.validate_comparison_participants(
         current_user, request.participant_ids
     ):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Invalid comparison participants. Coaches and parents can only compare with players."
-        )
+        if current_user.head_coach_function:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Invalid comparison participants. Head coaches can compare any two or more users."
+            )
+        elif current_user.head_parent_function:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Invalid comparison participants. Head parents can compare any two or more family members."
+            )
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Invalid comparison participants. Coaches and parents can only compare with players."
+            )
     
     # Create comparison
     result = comparison_service.create_comparison(
@@ -56,6 +67,11 @@ def get_comparison_history(
         # Head coach can see all comparisons in their club
         query = query.join(User, User.user_id == ComparisonResult.created_by).filter(
             User.club_id == current_user.club_id
+        )
+    elif current_user.head_parent_function:
+        # Head parent can see all comparisons they created
+        query = query.filter(
+            ComparisonResult.created_by == current_user.user_id
         )
     elif current_user.role in ["coach", "father", "mother"] or current_user.parent_function:
         # Can see comparisons they created or are part of

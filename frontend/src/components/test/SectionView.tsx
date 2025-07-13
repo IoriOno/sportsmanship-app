@@ -30,8 +30,8 @@ interface SectionInfo {
 
 interface SectionViewProps {
   section: SectionInfo;
-  answers: Record<number, number>;
-  onAnswerChange: (questionNumber: number, value: number) => void;
+  answers: Record<string, number>;
+  onAnswerChange: (questionId: string, value: number) => void;
 }
 
 const SectionView: React.FC<SectionViewProps> = ({
@@ -93,8 +93,8 @@ const SectionView: React.FC<SectionViewProps> = ({
             question={question}
             index={index}
             category={section.category}
-            answer={answers[question.question_number]}
-            onAnswerChange={(value) => onAnswerChange(question.question_number, value)}
+            answer={answers[question.question_id]}
+            onAnswerChange={(value) => onAnswerChange(question.question_id, value)}
           />
         ))}
       </div>

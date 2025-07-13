@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import AdminHeader from '../../components/admin/AdminHeader';
+import { createApiUrl } from '../../config/api';
 
 interface Club {
   club_id: string;
@@ -33,7 +34,7 @@ const ClubAdminPage = () => {
         return;
       }
       
-      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/api/v1/admin/clubs`, {
+      const response = await fetch(createApiUrl('/api/v1/admin/clubs'), {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -85,7 +86,7 @@ const ClubAdminPage = () => {
 
     try {
       const token = localStorage.getItem('admin_token');
-      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/api/v1/admin/clubs`, {
+      const response = await fetch(createApiUrl('/api/v1/admin/clubs'), {
         method: 'POST',
         headers: {
           'Authorization': token ? `Bearer ${token}` : '',
@@ -120,7 +121,7 @@ const ClubAdminPage = () => {
 
     try {
       const token = localStorage.getItem('admin_token');
-      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/api/v1/admin/clubs/${clubId}`, {
+      const response = await fetch(createApiUrl(`/api/v1/admin/clubs/${clubId}`), {
         method: 'DELETE',
         headers: {
           'Authorization': token ? `Bearer ${token}` : '',

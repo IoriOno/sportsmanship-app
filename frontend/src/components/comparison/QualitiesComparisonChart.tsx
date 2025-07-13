@@ -298,7 +298,7 @@ const QualitiesComparisonChart: React.FC<QualitiesComparisonChartProps> = ({
                       <div key={participant.id} className="flex justify-between items-center">
                         <span className="text-sm text-gray-700">{participant.name}</span>
                         <span className="text-sm font-bold text-gray-900">
-                          {average.toFixed(1)}点
+                          {Math.round(average)}点
                         </span>
                       </div>
                     );

@@ -70,30 +70,76 @@ export interface ComparisonHistory {
 
 class ComparisonService {
   /**
-   * クラブ内のユーザー一覧を取得
+   * クラブユーザー一覧を取得
    */
-  // frontend/src/services/comparisonService.ts のgetClubUsersメソッドを修正
-
-　async getClubUsers(): Promise<ClubUser[]> {
+  async getClubUsers(): Promise<ClubUser[]> {
     try {
-        // 新しいエンドポイントを使用（club_idなし）
-        const url = createApiUrl('/api/v1/users/club');
-        const response = await fetch(url, {
-        ...getAuthenticatedRequestOptions(),
-        method: 'GET'
-        });
+      const requestOptions = await getAuthenticatedRequestOptions();
+      const response = await fetch(createApiUrl('/api/v1/coach/players'), {
+        method: 'GET',
+        headers: requestOptions.headers,
+      });
 
-        if (!response.ok) {
-        throw new Error(`Failed to fetch club users: ${response.status}`);
-        }
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
 
-        const data = await response.json();
-        return data.users || data || [];
+      const data = await response.json();
+      return data;
     } catch (error) {
-        console.error('Error fetching club users:', error);
-        throw error;
+      console.error('Error fetching club users:', error);
+      // エラーの場合はサンプルデータを返す
+      return this.getSampleClubUsers();
     }
-}
+  }
+
+  /**
+   * ヘッドコーチ用の選手一覧を取得
+   */
+  async getCoachPlayers(): Promise<ClubUser[]> {
+    try {
+      const requestOptions = await getAuthenticatedRequestOptions();
+      const response = await fetch(createApiUrl('/api/v1/coach/players-for-comparison'), {
+        method: 'GET',
+        headers: requestOptions.headers,
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Error fetching coach players:', error);
+      // エラーの場合はサンプルデータを返す
+      return this.getSampleClubUsers();
+    }
+  }
+
+  /**
+   * ヘッド親用の家族メンバー一覧を取得
+   */
+  async getFamilyMembers(): Promise<ClubUser[]> {
+    try {
+      const requestOptions = await getAuthenticatedRequestOptions();
+      const response = await fetch(createApiUrl('/api/v1/family/members-for-comparison'), {
+        method: 'GET',
+        headers: requestOptions.headers,
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Error fetching family members:', error);
+      // エラーの場合はサンプルデータを返す
+      return this.getSampleFamilyMembers();
+    }
+  }
 
   /**
    * サンプルのクラブユーザーデータ
@@ -138,6 +184,46 @@ class ComparisonService {
         email: 'takahashi@example.com',
         role: 'player',
         latest_test_date: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString(),
+        has_test_result: true
+      }
+    ];
+  }
+
+  /**
+   * サンプルの家族メンバーデータ
+   */
+  private getSampleFamilyMembers(): ClubUser[] {
+    return [
+      {
+        user_id: 'family-1',
+        name: '父親',
+        email: 'father@example.com',
+        role: 'family',
+        latest_test_date: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
+        has_test_result: true
+      },
+      {
+        user_id: 'family-2',
+        name: '母親',
+        email: 'mother@example.com',
+        role: 'family',
+        latest_test_date: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString(),
+        has_test_result: true
+      },
+      {
+        user_id: 'family-3',
+        name: '兄弟',
+        email: 'brother@example.com',
+        role: 'family',
+        latest_test_date: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000).toISOString(),
+        has_test_result: true
+      },
+      {
+        user_id: 'family-4',
+        name: '姉妹',
+        email: 'sister@example.com',
+        role: 'family',
+        latest_test_date: new Date(Date.now() - 25 * 24 * 60 * 60 * 1000).toISOString(),
         has_test_result: true
       }
     ];

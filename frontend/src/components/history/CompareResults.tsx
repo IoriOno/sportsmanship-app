@@ -150,7 +150,7 @@ const CompareResults: React.FC<CompareResultsProps> = ({ comparison, onClose }) 
             totalImprovement < 0 ? 'text-red-600' : 'text-gray-600'
           }`}>
             {totalImprovement > 0 && '+'}
-            {totalImprovement.toFixed(1)}%
+            {Math.round(totalImprovement)}%
           </div>
           <div className="text-sm text-gray-600 mt-2">
             {totalScore1}点 → {totalScore2}点
@@ -176,7 +176,7 @@ const CompareResults: React.FC<CompareResultsProps> = ({ comparison, onClose }) 
                       <div className={`flex items-center space-x-2 px-3 py-1 rounded-full ${indicator.bgColor} ${indicator.color}`}>
                         {indicator.icon}
                         <span className="font-semibold">{indicator.label}</span>
-                        <span className="text-xs">({percentChange > 0 ? '+' : ''}{percentChange.toFixed(1)}%)</span>
+                        <span className="text-xs">({percentChange > 0 ? '+' : ''}{Math.round(percentChange)}%)</span>
                       </div>
                     </div>
                     

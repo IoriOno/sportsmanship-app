@@ -54,29 +54,10 @@ const TestPage = () => {
     canMoveToPreviousSection
   } = useSectionProgress(questions);
 
-  // questionNumberからquestionIdに変換して回答を設定するアダプター関数
-  const handleAnswerChange = useCallback((questionNumber: number, value: number) => {
-    const question = questions.find(q => q.question_number === questionNumber);
-    if (question) {
-      setAnswer(question.question_id, value);
-    } else {
-      console.error(`質問番号 ${questionNumber} に対応する質問が見つかりません`);
-    }
-  }, [questions, setAnswer]);
-
-  // question_idベースのanswersをquestion_numberベースに変換
-  const answersForSectionView = useMemo(() => {
-    const numberBasedAnswers: Record<number, number> = {};
-    
-    Object.entries(answers).forEach(([questionId, value]) => {
-      const question = questions.find(q => q.question_id === questionId);
-      if (question) {
-        numberBasedAnswers[question.question_number] = value;
-      }
-    });
-    
-    return numberBasedAnswers;
-  }, [answers, questions]);
+  // 回答変更ハンドラー（question_idベース）
+  const handleAnswerChange = useCallback((questionId: string, value: number) => {
+    setAnswer(questionId, value);
+  }, [setAnswer]);
 
   // UUID形式をチェックする関数
   const isValidUUID = (uuid: string): boolean => {
@@ -107,6 +88,7 @@ const TestPage = () => {
       club_id: 'sample-club',
       parent_function: false,
       head_coach_function: false,
+      head_parent_function: false,
       created_date: new Date().toISOString(),
       updated_date: new Date().toISOString()
     };
@@ -245,6 +227,24 @@ const TestPage = () => {
     }
   }, [overallProgress, currentSection, currentCategory, allSections]);
 
+  // デバッグ用：カテゴリ情報の詳細ログ
+  useEffect(() => {
+    if (categoryInfos && categoryInfos.length > 0) {
+      console.log('カテゴリ情報詳細:', {
+        categoryInfos: categoryInfos.map(cat => ({
+          category: cat.category,
+          title: cat.title,
+          totalSections: cat.totalSections,
+          totalQuestions: cat.totalQuestions,
+          answeredQuestions: cat.answeredQuestions,
+          isCompleted: cat.isCompleted
+        })),
+        allSectionsCount: allSections.length,
+        questionsCount: questions.length
+      });
+    }
+  }, [categoryInfos, allSections, questions]);
+
   // テスト提出処理
   const handleSubmit = async () => {
     setSubmitError(null);
@@ -293,7 +293,12 @@ const TestPage = () => {
         answersCount: Object.keys(answers).length
       });
 
-      const result = await submitTestResults(answers, questions, user.user_id);
+      // 送信前に全ての回答値を整数化
+      const roundedAnswers = Object.fromEntries(
+        Object.entries(answers).map(([k, v]) => [k, Math.round(v)])
+      );
+
+      const result = await submitTestResults(roundedAnswers, questions, user.user_id);
       
       console.log('テスト提出成功:', result);
 
@@ -404,7 +409,7 @@ const TestPage = () => {
       <div className="mb-8">
         <SectionView
           section={currentSection}
-          answers={answersForSectionView}
+          answers={answers}
           onAnswerChange={handleAnswerChange}
         />
       </div>

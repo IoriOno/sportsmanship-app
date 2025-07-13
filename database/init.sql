@@ -26,6 +26,7 @@ CREATE TABLE IF NOT EXISTS users (
     role user_role NOT NULL,
     parent_function BOOLEAN DEFAULT FALSE,
     head_coach_function BOOLEAN DEFAULT FALSE,
+    head_parent_function BOOLEAN DEFAULT FALSE,
     created_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

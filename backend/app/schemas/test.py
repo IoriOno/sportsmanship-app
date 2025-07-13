@@ -43,9 +43,23 @@ class TestSubmit(BaseModel):
     
     @validator('answers')
     def validate_answers_count(cls, v):
-        if len(v) != 99:
-            raise ValueError(f'Must submit exactly 99 answers, got {len(v)}')
-        return v
+        # 重複回答を除去（question_idでユニークにする）
+        unique_answers = {}
+        for answer in v:
+            question_id_str = str(answer.question_id)
+            if question_id_str not in unique_answers:
+                unique_answers[question_id_str] = answer
+        
+        # ユニークな回答のみを返す
+        unique_answer_list = list(unique_answers.values())
+        
+        # デバッグ用：実際の回答数をログ出力
+        print(f"回答数検証: 元の回答数={len(v)}, ユニーク回答数={len(unique_answer_list)}")
+        
+        if len(unique_answer_list) != 99:
+            raise ValueError(f'Must submit exactly 99 unique answers, got {len(unique_answer_list)}')
+        
+        return unique_answer_list
 
 
 class TestResultBase(BaseModel):

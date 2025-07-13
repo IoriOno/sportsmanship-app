@@ -263,7 +263,7 @@ const HistoryChart: React.FC<HistoryChartProps> = ({
                 : 'bg-gray-100 text-gray-800'
             }`}>
               {improvementRate > 0 && '+'}
-              {improvementRate.toFixed(1)}% 
+              {Math.round(improvementRate)}% 
               <span className="ml-1 text-xs">総合改善率</span>
             </div>
           )}

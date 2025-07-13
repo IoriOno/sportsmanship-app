@@ -7,6 +7,7 @@ export interface User {
   club_id: string;
   parent_function: boolean;
   head_coach_function: boolean;
+  head_parent_function?: boolean;
   created_date: string;
   updated_date: string;
 }

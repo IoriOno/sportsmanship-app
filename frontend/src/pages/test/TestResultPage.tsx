@@ -70,7 +70,7 @@ const TestResultPage = () => {
   const { resultId } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
-  const { login } = useAuthStore();
+  const { user: authUser } = useAuthStore();
   
   const [result, setResult] = useState<TestResult | null>(null);
   const [user, setUser] = useState<User | null>(null);
@@ -96,20 +96,15 @@ const TestResultPage = () => {
   useEffect(() => {
     const initializeUser = () => {
       console.log('TestResultPage: ユーザー情報確認開始');
-      const userStr = localStorage.getItem('user');
       
-      if (userStr) {
-        try {
-          const userData = JSON.parse(userStr);
-          setUser(userData);
-          console.log('TestResultPage: ユーザー情報取得成功:', userData);
+      // 認証ストアからユーザー情報を取得
+      if (authUser) {
+        setUser(authUser);
+        console.log('TestResultPage: 認証ストアからユーザー情報取得成功:', authUser);
           return;
-        } catch (err) {
-          console.error('TestResultPage: ユーザー情報の取得に失敗:', err);
-        }
       }
       
-      // サンプルユーザーでフォールバック
+      // 認証ストアにユーザーがいない場合のみサンプルユーザーを使用
       const sampleUser: User = {
         user_id: '123',
         name: '田中太郎',
@@ -118,22 +113,17 @@ const TestResultPage = () => {
         club_id: 'sample-club',
         parent_function: false,
         head_coach_function: false,
+        head_parent_function: false,
         created_date: new Date().toISOString(),
         updated_date: new Date().toISOString()
       };
       
       setUser(sampleUser);
-      localStorage.setItem('user', JSON.stringify(sampleUser));
-      login({
-        user: sampleUser,
-        access_token: 'sample-token',
-        token_type: 'bearer'
-      });
       console.log('TestResultPage: サンプルユーザーでフォールバック');
     };
 
     initializeUser();
-  }, []);
+  }, [authUser]);
 
   // テスト結果の取得
   useEffect(() => {
@@ -402,8 +392,8 @@ const TestResultPage = () => {
         <div className="space-y-8">
           {/* Result Header */}
           <ResultHeader
-            userName={user.name}
-            userRole={user.role}
+            userName={location.state?.playerName || user.name}
+            userRole={location.state?.playerRole || user.role}
             testDate={result.test_date}
             athleteType={result.athlete_type}
             onExportPDF={handleExportPDF}
@@ -462,7 +452,7 @@ const TestResultPage = () => {
                 <ScoreCard
                   title="自己決定感"
                   score={result.self_determination}
-                  maxScore={50}
+              maxScore={50}
                   color="purple"
                   icon="🎯"
                 />

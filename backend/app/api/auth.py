@@ -139,7 +139,8 @@ def login(
             "usage_type": user.usage_type,
             "can_access_club_features": user.can_access_club_features,
             "parent_function": user.parent_function,
-            "head_coach_function": user.head_coach_function
+            "head_coach_function": user.head_coach_function,
+            "head_parent_function": user.head_parent_function
         }
     }
 

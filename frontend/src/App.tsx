@@ -18,16 +18,32 @@ import UserAdminPage from './pages/admin/UserAdminPage';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import EnvironmentIndicator from './components/common/EnvironmentIndicator';
 import ClubAdminPage from './pages/admin/ClubAdminPage';
+import HeadCoachPage from './pages/admin/HeadCoachPage';
+import HeadParentPage from './pages/admin/HeadParentPage';
 import AdminLoginPage from './pages/admin/AdminLoginPage';
 import AdminAuthGuard from './components/admin/AdminAuthGuard';
 import AdminUserManagement from './pages/admin/AdminUserManagement';
 import JoinClubPage from './pages/club/JoinClubPage';
 import ProfilePage from './pages/profile/ProfilePage';
-
+import ProtectedRoute from './components/ProtectedRoute';
 
 
 function App() {
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, checkTokenExpiry } = useAuthStore();
+
+  // アプリケーション起動時にトークンの有効期限をチェック
+  React.useEffect(() => {
+    if (isAuthenticated) {
+      checkTokenExpiry();
+      
+      // 5分ごとにトークンの有効期限をチェック
+      const interval = setInterval(() => {
+        checkTokenExpiry();
+      }, 5 * 60 * 1000); // 5分
+      
+      return () => clearInterval(interval);
+    }
+  }, [isAuthenticated, checkTokenExpiry]);
 
   return (
     <Router
@@ -119,6 +135,26 @@ function App() {
                 <AdminAuthGuard>
                   <ClubAdminPage />
                 </AdminAuthGuard>
+              } 
+            />
+            <Route 
+              path="/headcoach" 
+              element={isAuthenticated ? <HeadCoachPage /> : <Navigate to="/login" />} 
+            />
+            <Route 
+              path="/head-coach" 
+              element={
+                <ProtectedRoute>
+                  <HeadCoachPage />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/head-parent" 
+              element={
+                <ProtectedRoute>
+                  <HeadParentPage />
+                </ProtectedRoute>
               } 
             />
             <Route 

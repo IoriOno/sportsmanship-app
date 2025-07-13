@@ -55,11 +55,22 @@ class TestService:
     def _calculate_scores(self, answers: List, target_selection: str) -> Dict[str, float]:
         """回答からスコアを計算（標準化されたsubcategory名に対応）"""
         
-        # 対象ユーザーの質問を取得
-        questions = self.db.query(Question).filter(
-            (Question.target == 'all') | (Question.target == target_selection),
+        # APIと同じロジックで質問を取得
+        # sportsmanshipはtargetを問わず全件、それ以外はtargetでフィルタ
+        sportsmanship_questions = self.db.query(Question).filter(
+            Question.category == 'sportsmanship',
             Question.is_active == True
-        ).order_by(Question.question_number).all()
+        ).all()
+        
+        other_questions = self.db.query(Question).filter(
+            Question.category != 'sportsmanship',
+            Question.is_active == True,
+            ((Question.target == 'all') | (Question.target == target_selection))
+        ).all()
+        
+        # 結合して番号順に並べる
+        questions = sportsmanship_questions + other_questions
+        questions.sort(key=lambda q: q.question_number)
         
         # 質問IDから質問オブジェクトへのマッピング
         question_map = {str(q.question_id): q for q in questions}

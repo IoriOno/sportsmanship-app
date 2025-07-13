@@ -17,7 +17,11 @@ class UserBase(BaseModel):
     name: str
     age: Optional[int] = None
     role: UserRole
-    club_id: str
+    club_id: Optional[str] = None
+    parent_function: bool = False
+    head_coach_function: bool = False
+    head_parent_function: bool = False  # ヘッド親機能追加
+    is_individual: bool = False
 
 
 class UserCreate(UserBase):
@@ -25,16 +29,22 @@ class UserCreate(UserBase):
 
 
 class UserUpdate(BaseModel):
+    email: Optional[str] = None
     name: Optional[str] = None
     age: Optional[int] = None
-    email: Optional[str] = None
-    password: Optional[str] = None
+    role: Optional[UserRole] = None
+    club_id: Optional[str] = None
+    parent_function: Optional[bool] = None
+    head_coach_function: Optional[bool] = None
+    head_parent_function: Optional[bool] = None  # ヘッド親機能追加
+    is_individual: Optional[bool] = None
 
 
 class UserInDBBase(UserBase):
     user_id: UUID4
     parent_function: bool
     head_coach_function: bool
+    head_parent_function: bool  # ヘッド親機能追加
     created_date: datetime
     updated_date: datetime
     
@@ -44,10 +54,6 @@ class UserInDBBase(UserBase):
 
 class User(UserInDBBase):
     pass
-
-
-class UserInDB(UserInDBBase):
-    password_hash: str
 
 
 class UserWithRelations(User):

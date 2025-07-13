@@ -155,32 +155,19 @@ const AthleteMindsSection: React.FC<AthletesMindsSectionProps> = ({ scores }) =>
         <h4 className="text-lg font-semibold text-gray-700 mb-4">項目別スコア（上位順）</h4>
         
         <div className="space-y-3">
-          {sortedScores.map((item, index) => {
+          {sortedScores.map((item) => {
             const percentage = item.score;
-            const isTop3 = index < 3;
-            
             return (
               <div key={item.key} className="relative">
                 <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center">
-                    {isTop3 && (
-                      <span className="text-lg mr-2">
-                        {index === 0 ? '🥇' : index === 1 ? '🥈' : '🥉'}
-                      </span>
-                    )}
-                    <span className={`font-medium ${isTop3 ? 'text-gray-800' : 'text-gray-700'}`}>
-                      {item.name}
-                    </span>
-                  </div>
-                  <span className={`font-bold ${isTop3 ? 'text-lg' : 'text-base'} text-gray-800`}>
-                    {item.score}点
-                  </span>
+                  <span className="font-medium text-gray-800">{item.name}</span>
+                  <span className="font-bold text-base text-gray-800">{item.score}点</span>
                 </div>
                 
                 <div className="relative h-8 bg-gray-100 rounded-full overflow-hidden">
                   <div className="absolute inset-0 bg-gray-200 opacity-30" />
                   <div
-                    className={`absolute inset-y-0 left-0 bg-gradient-to-r ${getBarColor(item.score, index)} rounded-full transition-all duration-1000 ease-out`}
+                    className={`absolute inset-y-0 left-0 bg-gradient-to-r ${getBarColor(item.score, sortedScores.indexOf(item))}`}
                     style={{ width: `${percentage}%` }}
                   >
                     <div className="absolute inset-0 bg-white opacity-20" />
@@ -207,7 +194,7 @@ const AthleteMindsSection: React.FC<AthletesMindsSectionProps> = ({ scores }) =>
             <div>
               <p className="text-sm text-gray-600">平均スコア</p>
               <p className="text-2xl font-bold text-indigo-700">
-                {(sortedScores.reduce((sum, item) => sum + item.score, 0) / sortedScores.length).toFixed(1)}
+                {Math.round(sortedScores.reduce((sum, item) => sum + item.score, 0) / sortedScores.length)}
               </p>
             </div>
             <div>

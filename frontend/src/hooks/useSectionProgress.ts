@@ -41,7 +41,7 @@ const BASE_SECTION_STRUCTURE: SectionStructure = {
     'assertion',         // 主張
     'commitment'         // こだわり
   ],
-  self_esteem: [        // self_affirmation → self_esteem に修正
+  self_affirmation: [    // データベースのカテゴリ名に合わせる
     'self_determination', // 自己決定感
     'self_acceptance',    // 自己受容感
     'self_worth',         // 自己有用感
@@ -88,7 +88,7 @@ export const useSectionProgress = (questions: Question[]) => {
   const [currentSectionIndex, setCurrentSectionIndex] = useState<number>(0);
 
   // カテゴリの順序を定義
-  const categoryOrder = useMemo(() => ['sportsmanship', 'athlete_mind', 'self_esteem'], []);
+  const categoryOrder = useMemo(() => ['sportsmanship', 'athlete_mind', 'self_affirmation'], []);
 
   // 現在のユーザーの役割を質問から推測
   const userRole = useMemo(() => {
@@ -149,7 +149,7 @@ export const useSectionProgress = (questions: Question[]) => {
         title: 'アスリートマインド',
         description: 'アスリートとしての精神的な特性を評価します'
       },
-      self_esteem: {
+      self_affirmation: {
         title: '自己肯定感',
         description: '自分自身に対する肯定的な感情を測定します'
       }
@@ -307,6 +307,17 @@ export const useSectionProgress = (questions: Question[]) => {
       answers[q.question_id] !== undefined && answers[q.question_id] !== null
     ).length;
     const completionPercentage = totalQuestions > 0 ? (totalAnsweredQuestions / totalQuestions) * 100 : 0;
+
+    // デバッグ情報を追加
+    console.log('質問数計算デバッグ:', {
+      totalQuestions,
+      totalAnsweredQuestions,
+      userQuestionsCount: userQuestions.length,
+      answersCount: Object.keys(answers).length,
+      userRole,
+      questionNumbers: userQuestions.map(q => q.question_number).sort((a, b) => a - b),
+      answeredQuestionIds: Object.keys(answers)
+    });
 
     const overallProgress: OverallProgress = {
       totalSections,

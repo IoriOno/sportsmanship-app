@@ -69,12 +69,27 @@ def get_head_coach_user(
     return current_user
 
 
+def get_head_parent_user(
+    current_user: User = Depends(get_current_active_user_required)
+) -> User:
+    if not current_user.head_parent_function:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Head parent function required"
+        )
+    return current_user
+
+
 def get_coach_or_parent_user(
     current_user: User = Depends(get_current_active_user_required)
 ) -> User:
-    if current_user.role not in ["coach", "father", "mother"] and not current_user.parent_function:
-        raise PermissionDenied(
-            details=[ErrorDetail(message="コーチまたは保護者の権限が必要です", field="role")]
+    if not (current_user.role in ["coach", "father", "mother"] or 
+            current_user.parent_function or 
+            current_user.head_coach_function or
+            current_user.head_parent_function):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Coach or parent function required"
         )
     return current_user
 

@@ -10,8 +10,7 @@ import {
   ChartBarIcon,
   UserGroupIcon,
   InformationCircleIcon,
-  AcademicCapIcon,
-  ClockIcon
+  AcademicCapIcon
 } from '@heroicons/react/24/outline';
 
 const DashboardPage = () => {
@@ -147,12 +146,34 @@ const DashboardPage = () => {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Welcome Section */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">
-          おかえりなさい、{user?.name}さん
-        </h1>
-        <p className="text-lg text-gray-600">
-          {getWelcomeMessage()}
-        </p>
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">
+              おかえりなさい、{user?.name}さん
+            </h1>
+            <p className="text-lg text-gray-600">
+              {getWelcomeMessage()}
+            </p>
+          </div>
+          {user?.head_coach_function && (
+            <div className="flex space-x-2">
+              <Link
+                to="/admin/head-coach"
+                className="inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg shadow hover:bg-indigo-700 transition"
+              >
+                <UserGroupIcon className="w-5 h-5 mr-2" />
+                ヘッドコーチ管理
+              </Link>
+              <Link
+                to="/admin/login"
+                className="inline-flex items-center px-4 py-2 bg-red-600 text-white rounded-lg shadow hover:bg-red-700 transition"
+              >
+                <UserGroupIcon className="w-5 h-5 mr-2" />
+                管理者ログイン
+              </Link>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Features Grid */}
@@ -198,50 +219,7 @@ const DashboardPage = () => {
         ))}
       </div>
 
-      {/* Quick Stats */}
-      <div className="card p-6 mb-8">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-semibold text-gray-900">アクティビティ概要</h2>
-          {stats.completedTests > 0 && (
-            <button
-              onClick={handleViewHistory}
-              className="text-sm text-purple-600 hover:text-purple-800 font-medium flex items-center"
-            >
-              <ClockIcon className="w-4 h-4 mr-1" />
-              履歴を見る
-            </button>
-          )}
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="text-center">
-            <div className="text-2xl font-bold text-blue-600">{stats.completedTests}</div>
-            <div className="text-sm text-gray-500">完了したテスト</div>
-            {stats.latestTestDate && (
-              <div className="text-xs text-gray-400 mt-1">
-                最新: {new Date(stats.latestTestDate).toLocaleDateString('ja-JP')}
-              </div>
-            )}
-          </div>
-          <div className="text-center">
-            <div className="text-2xl font-bold text-green-600">{stats.coachingSessions}</div>
-            <div className="text-sm text-gray-500">コーチングセッション</div>
-          </div>
-          <div className="text-center">
-            <div className="text-2xl font-bold text-orange-600">{stats.comparisons}</div>
-            <div className="text-sm text-gray-500">比較分析</div>
-          </div>
-        </div>
-        
-        {/* Latest Score Display */}
-        {stats.latestScore && (
-          <div className="mt-4 pt-4 border-t border-gray-200">
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-600">最新スコア</span>
-              <span className="text-lg font-semibold text-indigo-600">{stats.latestScore}点</span>
-            </div>
-          </div>
-        )}
-      </div>
+
 
       {/* App Information */}
       <div className="card p-6 mb-8">

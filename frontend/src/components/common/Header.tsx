@@ -46,6 +46,16 @@ const Header = () => {
     // Add coaching tab for all users
     baseTabs.push({ name: 'コーチング', path: '/coaching' });
 
+    // Add head coach management for coaches with head coach function
+    if (user.head_coach_function) {
+      baseTabs.push({ name: 'ヘッドコーチ管理', path: '/head-coach' });
+    }
+
+    // Add head parent management for parents with head parent function
+    if (user.head_parent_function) {
+      baseTabs.push({ name: 'ヘッド親管理', path: '/head-parent' });
+    }
+
     return baseTabs;
   };
 

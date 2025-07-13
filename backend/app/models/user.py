@@ -31,6 +31,7 @@ class User(Base):
     role = Column(Enum(UserRole), nullable=False)
     parent_function = Column(Boolean, default=False)
     head_coach_function = Column(Boolean, default=False)
+    head_parent_function = Column(Boolean, default=False)  # ヘッド親機能追加
     # 個人利用かクラブ利用かを識別するフィールド追加
     is_individual = Column(Boolean, default=False)  # True: 個人利用, False: クラブ利用
     created_date = Column(DateTime(timezone=True), server_default=func.now())

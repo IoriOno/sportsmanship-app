@@ -1,13 +1,5 @@
 // frontend/src/components/result/InsightPanel.tsx
 import React, { useState } from 'react';
-import { 
-  LightBulbIcon, 
-  TrophyIcon, 
-  ExclamationTriangleIcon,
-  ChartBarIcon,
-  SparklesIcon,
-  ArrowTrendingUpIcon
-} from '@heroicons/react/24/outline';
 
 interface InsightPanelProps {
   athleteType: string;
@@ -41,7 +33,6 @@ const InsightPanel: React.FC<InsightPanelProps> = ({
   const getMotivationalMessage = () => {
     if (!overallScore || !maxScore) {
       return {
-        icon: <SparklesIcon className="w-6 h-6 text-purple-500" />,
         title: "詳細な分析結果",
         message: "あなたの特性と成長ポイントを確認しましょう。",
         color: "bg-gradient-to-r from-purple-50 to-pink-50 border-purple-200"
@@ -50,21 +41,18 @@ const InsightPanel: React.FC<InsightPanelProps> = ({
 
     if (percentage >= 80) {
       return {
-        icon: <TrophyIcon className="w-6 h-6 text-yellow-500" />,
         title: "素晴らしい結果です！",
         message: "あなたは非常に高いメンタルヘルス状態を維持しています。この調子で継続していきましょう。",
         color: "bg-gradient-to-r from-yellow-50 to-orange-50 border-yellow-200"
       };
     } else if (percentage >= 60) {
       return {
-        icon: <ArrowTrendingUpIcon className="w-6 h-6 text-blue-500" />,
         title: "順調に成長しています",
         message: "良好な状態です。さらなる向上を目指して、成長ポイントに取り組んでみましょう。",
         color: "bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200"
       };
     } else {
       return {
-        icon: <SparklesIcon className="w-6 h-6 text-purple-500" />,
         title: "成長の可能性に満ちています",
         message: "改善のチャンスが多くあります。一歩ずつ取り組んでいけば、必ず向上できます。",
         color: "bg-gradient-to-r from-purple-50 to-pink-50 border-purple-200"
@@ -75,10 +63,10 @@ const InsightPanel: React.FC<InsightPanelProps> = ({
   const motivationalContent = getMotivationalMessage();
 
   const tabs = [
-    { id: 'overview', label: '総合分析', icon: <ChartBarIcon className="w-4 h-4" /> },
-    { id: 'strengths', label: '強み', icon: <TrophyIcon className="w-4 h-4" /> },
-    { id: 'improvements', label: '成長ポイント', icon: <ArrowTrendingUpIcon className="w-4 h-4" /> },
-    { id: 'analysis', label: 'AI分析', icon: <LightBulbIcon className="w-4 h-4" /> }
+    { id: 'overview', label: '総合分析' },
+    { id: 'strengths', label: 'あなたの特徴' },
+    { id: 'improvements', label: 'あなたの傾向' },
+    { id: 'analysis', label: 'AI分析' }
   ];
 
   return (
@@ -86,7 +74,6 @@ const InsightPanel: React.FC<InsightPanelProps> = ({
       {/* Header */}
       <div className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white p-6">
         <div className="flex items-center space-x-3">
-          <LightBulbIcon className="w-8 h-8" />
           <div>
             <h3 className="text-2xl font-bold">パーソナル分析</h3>
             <p className="text-indigo-100">あなたの特性と成長ポイントを詳しく分析</p>
@@ -97,7 +84,6 @@ const InsightPanel: React.FC<InsightPanelProps> = ({
       {/* Motivational Banner */}
       <div className={`border-l-4 border-r-4 border-t-0 border-b-0 p-4 ${motivationalContent.color}`}>
         <div className="flex items-center space-x-3">
-          {motivationalContent.icon}
           <div>
             <h4 className="font-semibold text-gray-900">{motivationalContent.title}</h4>
             <p className="text-sm text-gray-700">{motivationalContent.message}</p>
@@ -119,7 +105,6 @@ const InsightPanel: React.FC<InsightPanelProps> = ({
               }`}
             >
               <div className="flex items-center justify-center space-x-2">
-                {tab.icon}
                 <span>{tab.label}</span>
               </div>
             </button>
@@ -134,7 +119,6 @@ const InsightPanel: React.FC<InsightPanelProps> = ({
             {/* Athlete Type */}
             <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-6 border border-blue-200">
               <h4 className="text-lg font-bold text-gray-900 mb-2 flex items-center">
-                <TrophyIcon className="w-5 h-5 text-blue-500 mr-2" />
                 アスリートタイプ: {athleteType}
               </h4>
               <p className="text-gray-700 mb-4">{athleteTypeDescription}</p>
@@ -163,7 +147,6 @@ const InsightPanel: React.FC<InsightPanelProps> = ({
             {/* Balance Analysis */}
             <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-6 border border-green-200">
               <h4 className="text-lg font-bold text-gray-900 mb-2 flex items-center">
-                <ChartBarIcon className="w-5 h-5 text-green-500 mr-2" />
                 スポーツマンシップバランス
               </h4>
               <p className="text-gray-700">{sportsmanshipBalance}</p>
@@ -172,7 +155,6 @@ const InsightPanel: React.FC<InsightPanelProps> = ({
             {/* Self-Esteem Analysis */}
             <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl p-6 border border-purple-200">
               <h4 className="text-lg font-bold text-gray-900 mb-2 flex items-center">
-                <SparklesIcon className="w-5 h-5 text-purple-500 mr-2" />
                 自己肯定感分析
               </h4>
               <p className="text-gray-700">{selfEsteemAnalysis}</p>
@@ -183,8 +165,7 @@ const InsightPanel: React.FC<InsightPanelProps> = ({
         {activeTab === 'strengths' && (
           <div className="space-y-4">
             <div className="text-center mb-6">
-              <TrophyIcon className="w-12 h-12 text-yellow-500 mx-auto mb-2" />
-              <h4 className="text-xl font-bold text-gray-900">あなたの強み</h4>
+              <h4 className="text-xl font-bold text-gray-900">あなたの特徴</h4>
               <p className="text-gray-600">これらの特性を活かして更なる成長を</p>
             </div>
             
@@ -209,8 +190,7 @@ const InsightPanel: React.FC<InsightPanelProps> = ({
         {activeTab === 'improvements' && (
           <div className="space-y-4">
             <div className="text-center mb-6">
-              <ArrowTrendingUpIcon className="w-12 h-12 text-blue-500 mx-auto mb-2" />
-              <h4 className="text-xl font-bold text-gray-900">成長ポイント</h4>
+              <h4 className="text-xl font-bold text-gray-900">あなたの傾向</h4>
               <p className="text-gray-600">これらの分野で更なる向上が期待できます</p>
             </div>
 
@@ -219,7 +199,7 @@ const InsightPanel: React.FC<InsightPanelProps> = ({
                 <div key={index} className="bg-gradient-to-r from-orange-50 to-red-50 rounded-lg p-4 border border-orange-200">
                   <div className="flex items-center space-x-3">
                     <div className="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center">
-                      <ExclamationTriangleIcon className="w-4 h-4 text-white" />
+                      <span className="text-white font-bold text-sm">{index + 1}</span>
                     </div>
                     <div>
                       <h5 className="font-semibold text-gray-900">{weakness}</h5>
@@ -254,7 +234,6 @@ const InsightPanel: React.FC<InsightPanelProps> = ({
         {activeTab === 'analysis' && (
           <div className="space-y-6">
             <div className="text-center mb-6">
-              <SparklesIcon className="w-12 h-12 text-purple-500 mx-auto mb-2" />
               <h4 className="text-xl font-bold text-gray-900">AI詳細分析</h4>
               <p className="text-gray-600">データに基づいた詳細な分析結果</p>
             </div>

@@ -230,7 +230,7 @@ const HistoryCard: React.FC<HistoryCardProps> = ({
                     {hasImproved && (
                       <div className="flex items-center gap-1 text-green-600 font-bold">
                         <ArrowTrendingUpIcon className="w-5 h-5" />
-                        <span>+{improvementRate.toFixed(1)}%</span>
+                        <span>+{Math.round(improvementRate)}%</span>
                       </div>
                     )}
                   </div>

@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { createApiUrl } from '../../config/api';
 
 const AdminLoginPage = () => {
   const [email, setEmail] = useState('');
@@ -16,7 +17,7 @@ const AdminLoginPage = () => {
     setLoading(true);
 
     try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/api/v1/admin/login`, {
+      const response = await fetch(createApiUrl('/api/v1/admin/login'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

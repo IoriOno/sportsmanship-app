@@ -4,6 +4,7 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 from uuid import UUID
+from datetime import datetime
 
 from app.database import get_db
 from app.models.question import Question
@@ -14,6 +15,7 @@ from app.schemas.question import (
     QuestionList,
     TargetType
 )
+from app.api.admin import get_current_admin  # 管理者認証をインポート
 
 router = APIRouter()
 
@@ -26,9 +28,10 @@ def get_questions(
     target: Optional[TargetType] = None,
     user_target: Optional[TargetType] = None,  # ユーザーの対象（テスト用）
     is_active: Optional[bool] = True,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    admin_data = Depends(get_current_admin)  # 管理者認証を追加
 ):
-    """全ての質問を取得
+    """全ての質問を取得（管理者認証必須）
     
     user_target が指定された場合、そのユーザー向けの質問のみを返す
     （target='all' または target=user_target の質問）
@@ -77,9 +80,10 @@ def get_questions(
 @router.post("/", response_model=QuestionSchema)
 def create_question(
     question_data: QuestionCreate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    admin_data = Depends(get_current_admin)  # 管理者認証を追加
 ):
-    """新しい質問を作成"""
+    """新しい質問を作成（管理者認証必須）"""
     # 質問番号の重複チェック
     existing = db.query(Question).filter(
         Question.question_number == question_data.question_number
@@ -102,9 +106,10 @@ def create_question(
 @router.get("/{question_id}", response_model=QuestionSchema)
 def get_question(
     question_id: UUID,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    admin_data = Depends(get_current_admin)  # 管理者認証を追加
 ):
-    """特定の質問を取得"""
+    """特定の質問を取得（管理者認証必須）"""
     question = db.query(Question).filter(
         Question.question_id == question_id
     ).first()
@@ -122,9 +127,10 @@ def get_question(
 def update_question(
     question_id: UUID,
     question_update: QuestionUpdate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    admin_data = Depends(get_current_admin)  # 管理者認証を追加
 ):
-    """質問を更新"""
+    """質問を更新（管理者認証必須）"""
     question = db.query(Question).filter(
         Question.question_id == question_id
     ).first()
@@ -148,9 +154,10 @@ def update_question(
 @router.delete("/{question_id}")
 def delete_question(
     question_id: UUID,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    admin_data = Depends(get_current_admin)  # 管理者認証を追加
 ):
-    """質問を削除"""
+    """質問を削除（管理者認証必須）"""
     question = db.query(Question).filter(
         Question.question_id == question_id
     ).first()
@@ -176,21 +183,26 @@ def get_questions_for_user(
 ):
     """特定ユーザー向けの質問を取得"""
     try:
-        query = db.query(Question)
-        
-        if category:
-            query = query.filter(Question.category == category)
-        
-        query = query.filter(Question.is_active == is_active)
-        query = query.filter(
-            (Question.target == TargetType.ALL) | 
-            (Question.target == user_target)
+        # sportsmanshipはtargetを問わず全件、それ以外はtargetでフィルタ
+        sportsmanship_query = db.query(Question).filter(
+            Question.category == 'sportsmanship',
+            Question.is_active == is_active
+        )
+        other_query = db.query(Question).filter(
+            Question.category != 'sportsmanship',
+            Question.is_active == is_active,
+            ((Question.target == TargetType.ALL) | (Question.target == user_target))
         )
         
-        query = query.order_by(Question.question_number)
+        # 必要ならカテゴリでさらに絞り込み
+        if category:
+            sportsmanship_query = sportsmanship_query.filter(Question.category == category)
+            other_query = other_query.filter(Question.category == category)
         
-        total_count = query.count()
-        questions = query.all()
+        # 結合して番号順に並べる
+        questions = list(sportsmanship_query.all()) + list(other_query.all())
+        questions.sort(key=lambda q: q.question_number)
+        total_count = len(questions)
         
         # 手動で辞書に変換
         questions_dict = []

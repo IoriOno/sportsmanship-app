@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { createApiUrl } from '../../config/api';
 
 interface AdminStatistics {
   users: {
@@ -40,10 +41,27 @@ const AdminDashboard = () => {
     try {
       setLoading(true);
       
+      // 管理者トークンを取得
+      const adminToken = localStorage.getItem('admin_token');
+      if (!adminToken) {
+        setError('管理者認証が必要です');
+        return;
+      }
+
       // 並行して各種統計を取得
       const [usersRes, questionsRes] = await Promise.all([
-        fetch(`${process.env.REACT_APP_API_URL}/api/v1/admin/users/statistics/summary`),
-        fetch(`${process.env.REACT_APP_API_URL}/api/v1/questions/`)
+        fetch(createApiUrl('/api/v1/admin/users/statistics/summary'), {
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${adminToken}`
+          }
+        }),
+        fetch(createApiUrl('/api/v1/questions/'), {
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${adminToken}`
+          }
+        })
       ]);
 
       if (usersRes.ok && questionsRes.ok) {

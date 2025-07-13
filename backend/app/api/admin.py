@@ -53,6 +53,10 @@ class HeadCoachToggleRequest(BaseModel):
     is_head_coach: bool
 
 
+class HeadParentToggleRequest(BaseModel):
+    is_head_parent: bool
+
+
 class UpdateUserClubRequest(BaseModel):
     new_club_id: str
 
@@ -416,10 +420,10 @@ def toggle_head_coach(
     return {"message": f"Head coach function {'enabled' if request.is_head_coach else 'disabled'}"}
 
 
-@router.put("/users/{user_id}/parent-function")
-def toggle_parent_function(
+@router.put("/users/{user_id}/head-parent")
+def toggle_head_parent(
     user_id: UUID,
-    has_parent_function: bool,
+    request: HeadParentToggleRequest,
     db: Session = Depends(get_db),
     admin_data = Depends(get_current_admin)
 ):
@@ -430,10 +434,10 @@ def toggle_parent_function(
             detail="User not found"
         )
     
-    user.parent_function = has_parent_function
+    user.head_parent_function = request.is_head_parent
     db.commit()
     
-    return {"message": f"Parent function {'enabled' if has_parent_function else 'disabled'}"}
+    return {"message": f"Head parent function {'enabled' if request.is_head_parent else 'disabled'}"}
 
 
 @router.delete("/test-results/{result_id}")

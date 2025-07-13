@@ -1,14 +1,15 @@
 // ファイル: frontend/src/pages/admin/QuestionAdminPage.tsx
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import Button from '../../components/common/Button';
+import { createApiUrl } from '../../config/api';
 
 interface Question {
   question_id: string;
   question_number: number;
   question_text: string;
   category: string;
-  section: string;
+  subcategory: string;
   target: string;
   is_active: boolean;
   created_date: string;
@@ -24,11 +25,39 @@ const TARGETS = {
   'coach': 'コーチ'
 };
 
-// セクションとカテゴリの定義
-const SECTIONS = {
-  '自己肯定感': ['自己決定感', '自己受容感', '自己有用感', '自己効力感'],
-  'アスリートマインド': ['内省', '克己', '献身', '直感', '繊細', '堅実', '比較', '結果', '主張', 'こだわり・丁寧'],
-  'スポーツマンシップ': ['勇気', '打たれ強さ', '他者性・協調性', '自己受容・自然体', '非合理性・非論理性']
+// サブカテゴリとカテゴリの対応関係
+const SUBCATEGORY_TO_CATEGORY = {
+  // スポーツマンシップ
+  'courage': 'sportsmanship',
+  'resilience': 'sportsmanship',
+  'cooperation': 'sportsmanship',
+  'natural_acceptance': 'sportsmanship',
+  'non_rationality': 'sportsmanship',
+  
+  // アスリートマインド
+  'introspection': 'athlete_mind',
+  'self_control': 'athlete_mind',
+  'devotion': 'athlete_mind',
+  'intuition': 'athlete_mind',
+  'sensitivity': 'athlete_mind',
+  'steadiness': 'athlete_mind',
+  'comparison': 'athlete_mind',
+  'result': 'athlete_mind',
+  'assertion': 'athlete_mind',
+  'commitment': 'athlete_mind',
+  
+  // 自己肯定感
+  'self_determination': 'self_affirmation',
+  'self_acceptance': 'self_affirmation',
+  'self_worth': 'self_affirmation',
+  'self_efficacy': 'self_affirmation'
+};
+
+// カテゴリ別のサブカテゴリ一覧
+const CATEGORY_SUBCATEGORIES = {
+  'sportsmanship': ['courage', 'resilience', 'cooperation', 'natural_acceptance', 'non_rationality'],
+  'athlete_mind': ['introspection', 'self_control', 'devotion', 'intuition', 'sensitivity', 'steadiness', 'comparison', 'result', 'assertion', 'commitment'],
+  'self_affirmation': ['self_determination', 'self_acceptance', 'self_worth', 'self_efficacy']
 };
 
 const QuestionAdminPage = () => {
@@ -40,7 +69,7 @@ const QuestionAdminPage = () => {
     question_number: 0,
     question_text: '',
     category: '',
-    section: '',
+    subcategory: '',
     target: 'all',
     is_active: true
   });
@@ -49,95 +78,90 @@ const QuestionAdminPage = () => {
   const [filterSection, setFilterSection] = useState<string>(''); // セクションフィルター追加
   const [sortBy, setSortBy] = useState<'number' | 'created'>('number'); // ソート順追加
 
-  // 次の質問番号を自動取得
-  const getNextQuestionNumber = () => {
+  // 次の質問番号を自動取得（メモ化して無限ループを防ぐ）
+  const nextQuestionNumber = useMemo(() => {
     if (questions.length === 0) return 1;
     const maxNumber = Math.max(...questions.map(q => q.question_number));
     return maxNumber + 1;
-  };
+  }, [questions]);
 
   // 新規追加フォームを表示する際に質問番号を自動設定
-  const handleShowAddForm = () => {
-    const nextNumber = getNextQuestionNumber();
+  const handleShowAddForm = useCallback(() => {
     setNewQuestion({
-      question_number: nextNumber,
+      question_number: nextQuestionNumber,
       question_text: '',
       category: '',
-      section: '',
+      subcategory: '',
       target: 'all',
       is_active: true
     });
     setShowAddForm(true);
-  };
+  }, [nextQuestionNumber]);
 
-  // セクション変更時にカテゴリをリセット
-  const handleSectionChange = (section: string, isNewQuestion: boolean = true) => {
+  // サブカテゴリ変更時にカテゴリを自動設定
+  const handleSectionChange = useCallback((subcategory: string, isNewQuestion: boolean = true) => {
+    const category = SUBCATEGORY_TO_CATEGORY[subcategory as keyof typeof SUBCATEGORY_TO_CATEGORY];
+    
     if (isNewQuestion) {
-      setNewQuestion({
-        ...newQuestion,
-        section,
-        category: '' // カテゴリをリセット
-      });
+      setNewQuestion(prev => ({
+        ...prev,
+        subcategory: subcategory,
+        category: category || '' // 対応するカテゴリを自動設定
+      }));
     } else if (editingQuestion) {
-      setEditingQuestion({
-        ...editingQuestion,
-        section,
-        category: '' // カテゴリをリセット
-      });
+      setEditingQuestion(prev => prev ? {
+        ...prev,
+        subcategory: subcategory,
+        category: category || '' // 対応するカテゴリを自動設定
+      } : null);
     }
-  };
+  }, [editingQuestion]);
 
   // 質問一覧を取得（ページネーション対応）
-  const fetchQuestions = async () => {
+  const fetchQuestions = useCallback(async () => {
     try {
       setLoading(true);
       
-      // すべての質問を取得するために、まず総数を確認
-      let allQuestions: Question[] = [];
-      let page = 1;
-      const limit = 100; // APIのデフォルトリミット
-      let hasMore = true;
+      // 管理者トークンを取得
+      const adminToken = localStorage.getItem('admin_token');
+      if (!adminToken) {
+        setError('管理者認証が必要です');
+        return;
+      }
       
-      while (hasMore) {
-        const params = new URLSearchParams();
-        params.append('page', page.toString());
-        params.append('limit', limit.toString());
-        
-        if (filterTarget) {
-          params.append('target', filterTarget);
+      // すべての質問を一度に取得
+      const params = new URLSearchParams();
+      params.append('limit', '1000'); // 最大1000件取得
+      
+      if (filterTarget) {
+        params.append('target', filterTarget);
+      }
+      
+      const url = `${createApiUrl('/api/v1/questions')}?${params.toString()}`;
+      const response = await fetch(url, {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${adminToken}`
         }
-        
-        const url = `${process.env.REACT_APP_API_URL}/api/v1/questions/?${params.toString()}`;
-        const response = await fetch(url);
+      });
+      
+      if (response.ok) {
         const data = await response.json();
+        const allQuestions = data.questions || [];
         
-        if (response.ok) {
-          if (data.questions && data.questions.length > 0) {
-            allQuestions = [...allQuestions, ...data.questions];
-            
-            // 次のページがあるかチェック
-            if (data.questions.length < limit) {
-              hasMore = false;
-            } else {
-              page++;
-            }
-          } else {
-            hasMore = false;
-          }
+        // ソート処理
+        if (sortBy === 'number') {
+          allQuestions.sort((a: Question, b: Question) => a.question_number - b.question_number);
         } else {
-          setError('質問の取得に失敗しました');
-          hasMore = false;
+          allQuestions.sort((a: Question, b: Question) => new Date(b.created_date).getTime() - new Date(a.created_date).getTime());
         }
-      }
-      
-      // ソート処理
-      if (sortBy === 'number') {
-        allQuestions.sort((a, b) => a.question_number - b.question_number);
+        
+        setQuestions(allQuestions);
+        setError(null);
       } else {
-        allQuestions.sort((a, b) => new Date(b.created_date).getTime() - new Date(a.created_date).getTime());
+        const errorData = await response.json();
+        setError(`質問の取得に失敗しました: ${errorData.detail || '不明なエラー'}`);
       }
-      
-      setQuestions(allQuestions);
       setError(null);
       
     } catch (err) {
@@ -145,25 +169,27 @@ const QuestionAdminPage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [filterTarget, sortBy]);
 
   useEffect(() => {
     fetchQuestions();
   }, [filterTarget, sortBy]);
 
   // フィルタリングされた質問一覧
-  const filteredQuestions = questions.filter(q => {
-    if (filterSection && q.section !== filterSection) {
-      return false;
-    }
-    return true;
-  });
+  const filteredQuestions = useMemo(() => {
+    return questions.filter(q => {
+      if (filterSection && q.subcategory !== filterSection) {
+        return false;
+      }
+      return true;
+    });
+  }, [questions, filterSection]);
 
   // 統計情報の計算
-  const statistics = {
+  const statistics = useMemo(() => ({
     total: questions.length,
-    bySection: Object.keys(SECTIONS).reduce((acc, section) => {
-      acc[section] = questions.filter(q => q.section === section).length;
+    bySection: Object.keys(CATEGORY_SUBCATEGORIES).reduce((acc, category) => {
+      acc[category] = questions.filter(q => q.category === category).length;
       return acc;
     }, {} as Record<string, number>),
     byTarget: Object.keys(TARGETS).reduce((acc, target) => {
@@ -172,7 +198,7 @@ const QuestionAdminPage = () => {
     }, {} as Record<string, number>),
     active: questions.filter(q => q.is_active).length,
     inactive: questions.filter(q => !q.is_active).length
-  };
+  }), [questions]);
 
   // 新しい質問を作成
   const handleCreateQuestion = async () => {
@@ -181,7 +207,7 @@ const QuestionAdminPage = () => {
       alert('質問文を入力してください');
       return;
     }
-    if (!newQuestion.section) {
+    if (!newQuestion.subcategory) {
       alert('セクションを選択してください');
       return;
     }
@@ -191,10 +217,17 @@ const QuestionAdminPage = () => {
     }
 
     try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/v1/questions/`, {
+      const adminToken = localStorage.getItem('admin_token');
+      if (!adminToken) {
+        alert('管理者認証が必要です');
+        return;
+      }
+
+      const response = await fetch(createApiUrl('/api/v1/questions'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${adminToken}`
         },
         body: JSON.stringify(newQuestion),
       });
@@ -204,7 +237,7 @@ const QuestionAdminPage = () => {
           question_number: 0,
           question_text: '',
           category: '',
-          section: '',
+          subcategory: '',
           target: 'all',
           is_active: true
         });
@@ -229,7 +262,7 @@ const QuestionAdminPage = () => {
       alert('質問文を入力してください');
       return;
     }
-    if (!editingQuestion.section) {
+    if (!editingQuestion.subcategory) {
       alert('セクションを選択してください');
       return;
     }
@@ -239,15 +272,22 @@ const QuestionAdminPage = () => {
     }
 
     try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/v1/questions/${editingQuestion.question_id}`, {
+      const adminToken = localStorage.getItem('admin_token');
+      if (!adminToken) {
+        alert('管理者認証が必要です');
+        return;
+      }
+
+      const response = await fetch(createApiUrl(`/api/v1/questions/${editingQuestion.question_id}`), {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${adminToken}`
         },
         body: JSON.stringify({
           question_text: editingQuestion.question_text,
           category: editingQuestion.category,
-          section: editingQuestion.section,
+          subcategory: editingQuestion.subcategory,
           target: editingQuestion.target,
           is_active: editingQuestion.is_active,
         }),
@@ -270,8 +310,17 @@ const QuestionAdminPage = () => {
     if (!window.confirm('この質問を削除しますか？')) return;
 
     try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/v1/questions/${questionId}`, {
+      const adminToken = localStorage.getItem('admin_token');
+      if (!adminToken) {
+        alert('管理者認証が必要です');
+        return;
+      }
+
+      const response = await fetch(createApiUrl(`/api/v1/questions/${questionId}`), {
         method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${adminToken}`
+        }
       });
 
       if (response.ok) {
@@ -352,9 +401,9 @@ const QuestionAdminPage = () => {
               onChange={(e) => setFilterSection(e.target.value)}
               className="p-2 border border-gray-300 rounded focus:ring-2 focus:ring-primary-500"
             >
-              <option value="">すべてのセクション</option>
-              {Object.keys(SECTIONS).map((section) => (
-                <option key={section} value={section}>{section}</option>
+              <option value="">すべてのサブカテゴリ</option>
+              {Object.values(CATEGORY_SUBCATEGORIES).flat().map((subcategory) => (
+                <option key={subcategory} value={subcategory}>{subcategory}</option>
               ))}
             </select>
             
@@ -371,7 +420,7 @@ const QuestionAdminPage = () => {
           
           <div className="flex items-center gap-2">
             <p className="text-sm text-gray-500">
-              次の質問番号: Q{getNextQuestionNumber()}
+              次の質問番号: Q{nextQuestionNumber}
             </p>
             <Button onClick={handleShowAddForm}>
               新しい質問を追加
@@ -434,13 +483,13 @@ const QuestionAdminPage = () => {
                 セクション <span className="text-red-500">*</span>
               </label>
               <select
-                value={newQuestion.section}
+                value={newQuestion.subcategory}
                 onChange={(e) => handleSectionChange(e.target.value, true)}
                 className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-primary-500"
               >
-                <option value="">セクションを選択</option>
-                {Object.keys(SECTIONS).map((section) => (
-                  <option key={section} value={section}>{section}</option>
+                <option value="">サブカテゴリを選択</option>
+                {Object.values(CATEGORY_SUBCATEGORIES).flat().map((subcategory) => (
+                  <option key={subcategory} value={subcategory}>{subcategory}</option>
                 ))}
               </select>
             </div>
@@ -451,13 +500,15 @@ const QuestionAdminPage = () => {
               <select
                 value={newQuestion.category}
                 onChange={(e) => setNewQuestion({...newQuestion, category: e.target.value})}
-                disabled={!newQuestion.section}
+                disabled={!newQuestion.subcategory}
                 className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-primary-500 disabled:bg-gray-100"
               >
                 <option value="">カテゴリを選択</option>
-                {newQuestion.section && SECTIONS[newQuestion.section as keyof typeof SECTIONS]?.map((category) => (
-                  <option key={category} value={category}>{category}</option>
-                ))}
+                {newQuestion.subcategory && (
+                  <option value={SUBCATEGORY_TO_CATEGORY[newQuestion.subcategory as keyof typeof SUBCATEGORY_TO_CATEGORY]}>
+                    {SUBCATEGORY_TO_CATEGORY[newQuestion.subcategory as keyof typeof SUBCATEGORY_TO_CATEGORY]}
+                  </option>
+                )}
               </select>
             </div>
             <div>
@@ -528,13 +579,13 @@ const QuestionAdminPage = () => {
                         セクション <span className="text-red-500">*</span>
                       </label>
                       <select
-                        value={editingQuestion.section}
+                        value={editingQuestion.subcategory}
                         onChange={(e) => handleSectionChange(e.target.value, false)}
                         className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-primary-500"
                       >
-                        <option value="">セクションを選択</option>
-                        {Object.keys(SECTIONS).map((section) => (
-                          <option key={section} value={section}>{section}</option>
+                        <option value="">サブカテゴリを選択</option>
+                        {Object.values(CATEGORY_SUBCATEGORIES).flat().map((subcategory) => (
+                          <option key={subcategory} value={subcategory}>{subcategory}</option>
                         ))}
                       </select>
                     </div>
@@ -545,13 +596,15 @@ const QuestionAdminPage = () => {
                       <select
                         value={editingQuestion.category}
                         onChange={(e) => setEditingQuestion({...editingQuestion, category: e.target.value})}
-                        disabled={!editingQuestion.section}
+                        disabled={!editingQuestion.subcategory}
                         className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-primary-500 disabled:bg-gray-100"
                       >
                         <option value="">カテゴリを選択</option>
-                        {editingQuestion.section && SECTIONS[editingQuestion.section as keyof typeof SECTIONS]?.map((category) => (
-                          <option key={category} value={category}>{category}</option>
-                        ))}
+                        {editingQuestion.subcategory && (
+                          <option value={SUBCATEGORY_TO_CATEGORY[editingQuestion.subcategory as keyof typeof SUBCATEGORY_TO_CATEGORY]}>
+                            {SUBCATEGORY_TO_CATEGORY[editingQuestion.subcategory as keyof typeof SUBCATEGORY_TO_CATEGORY]}
+                          </option>
+                        )}
                       </select>
                     </div>
                     <div>
@@ -606,7 +659,7 @@ const QuestionAdminPage = () => {
                         {question.category}
                       </span>
                       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                        {question.section}
+                        {question.subcategory}
                       </span>
                       {!question.is_active && (
                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">

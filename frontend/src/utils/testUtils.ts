@@ -158,7 +158,7 @@ export const convertAnswersForAPI = (
  * @returns テスト結果のレスポンス
  */
 export const submitTestResults = async (
-  answers: Record<string, number>,  // 修正：number から string に変更
+  answers: Record<string, number>,
   questions: Question[],
   userId: string
 ): Promise<TestResultResponse> => {
@@ -174,7 +174,10 @@ export const submitTestResults = async (
     submitData = {
       user_id: userId,
       test_date: new Date().toISOString(),
-      answers: convertedData.answers
+      answers: convertedData.answers.map(ans => ({
+        ...ans,
+        answer_value: Math.round(ans.answer_value)
+      }))
     };
     
     console.log('📤 API送信データ:', {

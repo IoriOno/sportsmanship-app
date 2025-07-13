@@ -125,7 +125,7 @@ const ExportOptions: React.FC<ExportOptionsProps> = ({
     const oldestTotal = oldestResult.self_esteem_total + oldestResult.courage + 
                        oldestResult.resilience + oldestResult.cooperation + 
                        oldestResult.natural_acceptance + oldestResult.non_rationality;
-    const improvementRate = ((latestTotal - oldestTotal) / oldestTotal * 100).toFixed(1);
+    const improvementRate = Math.round((latestTotal - oldestTotal) / oldestTotal * 100);
 
     return `
 テスト履歴レポート
@@ -166,7 +166,7 @@ const ExportOptions: React.FC<ExportOptionsProps> = ({
       }
     });
 
-    return `${maxCategory} (+${maxImprovement.toFixed(1)}%)`;
+    return `${maxCategory} (+${Math.round(maxImprovement)}%)`;
   };
 
   return (
