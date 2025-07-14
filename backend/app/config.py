@@ -42,7 +42,8 @@ class Settings(BaseModel):
         "http://localhost:8000", 
         "http://127.0.0.1:8000",
         "https://sportsmanship-app.netlify.app",
-        "https://sportsmanship-app-eb013246c2ae.herokuapp.com"
+        "https://sportsmanship-app-eb013246c2ae.herokuapp.com",
+        "https://gleaming-dragon-861a8b.netlify.app"
     ]
     
     @field_validator("POSTGRES_USER", "POSTGRES_PASSWORD", "POSTGRES_DB", mode="before")
