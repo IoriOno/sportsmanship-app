@@ -11,6 +11,8 @@ from passlib.hash import bcrypt
 
 # データベースURLを環境変数から取得
 DATABASE_URL = os.getenv('DATABASE_URL')
+if DATABASE_URL and DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 if not DATABASE_URL:
     print("DATABASE_URL environment variable not found")
     sys.exit(1)
