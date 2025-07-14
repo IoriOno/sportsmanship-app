@@ -1,7 +1,7 @@
 ## backend/app/config.py
 import os
 from typing import Optional, List
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, validator
 from urllib.parse import urlparse
 
 
@@ -46,20 +46,20 @@ class Settings(BaseModel):
         "https://gleaming-dragon-861a8b.netlify.app"
     ]
     
-    @field_validator("POSTGRES_USER", "POSTGRES_PASSWORD", "POSTGRES_DB", mode="before")
+    @validator("POSTGRES_USER", "POSTGRES_PASSWORD", "POSTGRES_DB", pre=True)
     @classmethod
-    def extract_from_database_url(cls, v, info):
-        if v is None and hasattr(info, 'data') and "DATABASE_URL" in info.data:
-            parsed_url = urlparse(info.data["DATABASE_URL"])
-            if info.field_name == "POSTGRES_USER":
+    def extract_from_database_url(cls, v, values):
+        if v is None and "DATABASE_URL" in values:
+            parsed_url = urlparse(values["DATABASE_URL"])
+            if values.get("_field_name") == "POSTGRES_USER":
                 return parsed_url.username
-            elif info.field_name == "POSTGRES_PASSWORD":
+            elif values.get("_field_name") == "POSTGRES_PASSWORD":
                 return parsed_url.password
-            elif info.field_name == "POSTGRES_DB":
+            elif values.get("_field_name") == "POSTGRES_DB":
                 return parsed_url.path.lstrip('/')
         return v
     
-    @field_validator("SECRET_KEY")
+    @validator("SECRET_KEY")
     @classmethod
     def validate_secret_key(cls, v):
         if v == "your-secret-key-here" or v == "your-secret-key-here-please-change-in-production":
@@ -68,7 +68,7 @@ class Settings(BaseModel):
             raise ValueError("SECRET_KEY must be at least 32 characters long!")
         return v
     
-    @field_validator("ADMIN_PASSWORD")
+    @validator("ADMIN_PASSWORD")
     @classmethod
     def validate_admin_password(cls, v):
         if v == "admin123":
