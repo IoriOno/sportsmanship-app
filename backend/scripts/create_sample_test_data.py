@@ -27,39 +27,18 @@ def create_sample_test_data():
         # サンプルユーザーを作成
         sample_users = [
             {
-                "name": "田中太郎",
-                "email": "tanaka@example.com",
-                "role": UserRole.player,
-                "age": 18,
-                "club_id": "CLUB001"
-            },
-            {
-                "name": "佐藤花子",
-                "email": "sato@example.com", 
-                "role": UserRole.mother,
-                "age": 45,
-                "club_id": "CLUB001"
-            },
-            {
-                "name": "山田コーチ",
-                "email": "yamada@example.com",
-                "role": UserRole.coach,
-                "age": 35,
-                "club_id": "CLUB001"
-            },
-            {
-                "name": "鈴木一郎",
-                "email": "suzuki@example.com",
-                "role": UserRole.father,
-                "age": 48,
-                "club_id": "CLUB002"
-            },
-            {
-                "name": "高橋美咲",
-                "email": "takahashi@example.com",
+                "name": "佐藤太郎",
+                "email": "player1@demo.com",
                 "role": UserRole.player,
                 "age": 16,
-                "club_id": "CLUB002"
+                "club_id": "DEMO001"
+            },
+            {
+                "name": "山田花子",
+                "email": "player2@demo.com", 
+                "role": UserRole.player,
+                "age": 15,
+                "club_id": "DEMO001"
             }
         ]
         
