@@ -27,3 +27,4 @@ seaborn==0.12.2
 plotly==5.15.0
 kaleido==0.2.1
 email-validator==2.0.0
+bcrypt==4.0.1
